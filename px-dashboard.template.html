@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PX Team Dashboard</title>
+<style>
+:root{
+  --bg:#0b0f17; --bg2:#101623; --card:#141b2b; --card2:#1a2236; --line:#232d44;
+  --txt:#e8edf7; --mut:#8b96ad; --dim:#5c6780;
+  --acc:#5b8cff; --acc2:#8b5bff; --grad:linear-gradient(135deg,#5b8cff,#8b5bff);
+  --ok:#34d399; --okbg:rgba(52,211,153,.12); --warn:#fbbf24; --warnbg:rgba(251,191,36,.12);
+  --bad:#f87171; --badbg:rgba(248,113,113,.12); --info:#60a5fa; --infobg:rgba(96,165,250,.12);
+  --r:14px; --shadow:0 8px 28px rgba(0,0,0,.35);
+}
+body.light{
+  --bg:#f4f6fb; --bg2:#eef1f8; --card:#ffffff; --card2:#f6f8fd; --line:#e3e8f2;
+  --txt:#17203a; --mut:#5b6579; --dim:#9aa3b8;
+  --shadow:0 8px 24px rgba(23,32,58,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:rgba(91,140,255,.35)}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select{font:inherit;color:var(--txt);background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;outline:none;transition:border .15s}
+input:focus,select:focus{border-color:var(--acc)}
+select option{background:var(--card);color:var(--txt)}
+
+/* ---------- shell ---------- */
+header.top{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1280px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:16px}
+.logo{width:38px;height:38px;border-radius:11px;background:var(--grad);display:grid;place-items:center;font-weight:800;color:#fff;font-size:15px;letter-spacing:-.5px;box-shadow:0 4px 14px rgba(91,140,255,.4)}
+.brand h1{font-size:17px;font-weight:750;letter-spacing:-.3px}
+.brand p{font-size:11.5px;color:var(--mut);margin-top:1px}
+.spacer{flex:1}
+.theme-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;color:var(--mut)}
+.theme-btn:hover{color:var(--txt);border-color:var(--acc)}
+
+nav.tabs{border-bottom:1px solid var(--line);background:var(--bg2)}
+.tabs-in{max-width:1280px;margin:0 auto;padding:0 24px;display:flex;gap:4px}
+.tab{padding:13px 18px;color:var(--mut);font-weight:600;font-size:13.5px;border-bottom:2px solid transparent;display:flex;gap:8px;align-items:center;transition:.15s}
+.tab:hover{color:var(--txt)}
+.tab.on{color:var(--txt);border-image:var(--grad) 1;border-bottom:2px solid #5b8cff}
+.tab .cnt{background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:0 7px;font-size:11px;color:var(--mut)}
+
+main{max-width:1280px;margin:0 auto;padding:26px 24px 80px}
+.view{display:none}.view.on{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- controls ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:7px 14px;border-radius:20px;border:1px solid var(--line);background:var(--card);color:var(--mut);font-weight:600;font-size:12.5px;transition:.15s}
+.chip:hover{border-color:var(--acc);color:var(--txt)}
+.chip.on{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(91,140,255,.35)}
+.field{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:0 10px;height:36px}
+.field input{border:none;background:none;padding:0;width:150px}
+.field svg{flex-shrink:0;color:var(--dim)}
+.tgl{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);cursor:pointer;user-select:none}
+.tgl input{accent-color:var(--acc);width:15px;height:15px}
+.btn{height:36px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--mut);font-weight:600;font-size:12.5px;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.btn:hover{color:var(--txt);border-color:var(--acc)}
+.btn.pri{background:var(--grad);color:#fff;border-color:transparent}
+.btn.pri:hover{filter:brightness(1.1)}
+.btn.danger:hover{color:var(--bad);border-color:var(--bad)}
+
+/* ---------- KPI ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--kc,var(--acc))}
+.kpi .lbl{font-size:11.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)}
+.kpi .val{font-size:27px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:11.5px;color:var(--dim)}
+.kpi .icn{position:absolute;right:14px;top:14px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--kb,rgba(91,140,255,.12));color:var(--kc,var(--acc))}
+
+/* ---------- table ---------- */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.panel-h{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.panel-h h3{font-size:14.5px;font-weight:700}
+.panel-h .hint{font-size:12px;color:var(--mut)}
+.tblwrap{overflow-x:auto;max-height:calc(100vh - 320px);min-height:200px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{position:sticky;top:0;background:var(--card2);z-index:2;text-align:left;padding:10px 14px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--mut);white-space:nowrap;cursor:pointer;border-bottom:1px solid var(--line)}
+thead th:hover{color:var(--txt)}
+thead th .arr{opacity:.4;margin-left:3px}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums}
+tbody tr{transition:background .12s;cursor:pointer}
+tbody tr:hover{background:var(--card2)}
+.emp-cell{display:flex;align-items:center;gap:10px}
+.avat{width:30px;height:30px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0}
+.emp-cell .nm{font-weight:600}
+.emp-cell .id{font-size:11px;color:var(--dim)}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.b-ok{background:var(--okbg);color:var(--ok)} .b-warn{background:var(--warnbg);color:var(--warn)}
+.b-bad{background:var(--badbg);color:var(--bad)} .b-info{background:var(--infobg);color:var(--info)}
+.b-mut{background:var(--card2);color:var(--mut);border:1px solid var(--line)}
+.num-good{color:var(--ok);font-weight:650}.num-bad{color:var(--bad);font-weight:650}.num-warn{color:var(--warn);font-weight:650}
+.dot-edited{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle}
+.mini-bar{display:inline-flex;align-items:flex-end;gap:2px;height:16px;margin-left:8px;vertical-align:middle}
+.mini-bar i{width:4px;border-radius:2px 2px 0 0;background:var(--acc);opacity:.85;display:block}
+.empty-state{padding:48px;text-align:center;color:var(--mut)}
+.empty-state p{margin-top:6px;font-size:12.5px;color:var(--dim)}
+
+/* ---------- sailor ---------- */
+.crit-row{display:flex;gap:14px;padding:16px 20px;border-bottom:1px solid var(--line);align-items:flex-start;transition:background .12s}
+.crit-row:last-child{border-bottom:none}
+.crit-row:hover{background:var(--card2)}
+.crit-no{width:30px;height:30px;border-radius:9px;background:var(--card2);border:1px solid var(--line);display:grid;place-items:center;font-size:11.5px;font-weight:700;color:var(--mut);flex-shrink:0}
+.crit-main{flex:1;min-width:0}
+.crit-main h4{font-size:13.5px;font-weight:650;line-height:1.35}
+.crit-tags{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;align-items:center}
+.tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;letter-spacing:.3px}
+.t-px{background:rgba(91,140,255,.13);color:#7ea4ff}
+.t-acc{background:rgba(251,191,36,.13);color:var(--warn)}
+.t-prj{background:rgba(139,92,255,.14);color:#a98bff}
+.t-auto{background:var(--okbg);color:var(--ok)}
+.ppl{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.pp{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:3px 6px 3px 10px;font-size:12px;animation:fade .2s}
+.pp b{font-weight:650}
+.pp .v{font-weight:800;color:var(--acc);font-variant-numeric:tabular-nums}
+.pp.hot .v{color:var(--bad)}
+.pp .x{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;color:var(--dim);font-size:13px;line-height:1}
+.pp .x:hover{background:var(--badbg);color:var(--bad)}
+.none-txt{font-size:12px;color:var(--dim);font-style:italic;margin-top:8px}
+.addform{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.addform input{height:32px;padding:4px 10px;font-size:12.5px}
+.addform input.nm{width:190px}.addform input.vl{width:90px}
+
+/* ---------- modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(5,8,15,.66);backdrop-filter:blur(4px);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:5vh 20px;overflow:auto}
+.overlay.on{display:flex;animation:fade .18s ease}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:18px;width:100%;max-width:860px;box-shadow:0 24px 70px rgba(0,0,0,.5);animation:pop .22s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-h{display:flex;align-items:center;gap:14px;padding:20px 24px;border-bottom:1px solid var(--line)}
+.modal-h .avat{width:42px;height:42px;font-size:14px}
+.modal-h h3{font-size:16.5px;font-weight:750}
+.modal-h .sub{font-size:12px;color:var(--mut);margin-top:1px}
+.x-close{margin-left:auto;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;color:var(--mut);font-size:18px}
+.x-close:hover{background:var(--card2);color:var(--txt)}
+.modal-b{padding:22px 24px;max-height:70vh;overflow:auto}
+.mstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:20px}
+.ms{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px}
+.ms .l{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);font-weight:700}
+.ms .v{font-size:19px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
+.spark{display:flex;align-items:flex-end;gap:7px;height:74px;margin:8px 0 2px}
+.spark .bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;height:100%}
+.spark .bar>i{display:block;border-radius:4px 4px 0 0}
+.spark .bar span{font-size:9.5px;color:var(--dim);text-align:center;display:block}
+.sec-t{font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut);margin:18px 0 8px}
+.edit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.edit-grid label{font-size:11.5px;color:var(--mut);font-weight:600;display:block;margin-bottom:5px}
+.edit-grid input{width:100%}
+
+footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var(--dim);font-size:12px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 20px;font-size:13px;font-weight:600;box-shadow:var(--shadow);z-index:200;transition:.25s;opacity:0}
+.toast.on{transform:translateX(-50%);opacity:1}
+#syncPill{cursor:default;min-width:74px;text-align:center}
+.p-live{background:var(--okbg)!important;color:var(--ok)!important}
+.p-off{background:var(--warnbg)!important;color:var(--warn)!important}
+.p-sync{background:var(--infobg)!important;color:var(--info)!important}
+@keyframes pulse{50%{opacity:.4}}
+.p-sync{animation:pulse 1.1s infinite}
+@media(max-width:720px){.top-in{padding:12px 14px}.tabs-in{padding:0 8px;overflow-x:auto}main{padding:18px 14px 60px}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="logo">PX</div>
+    <div class="brand">
+      <h1>PX Team Dashboard</h1>
+      <p id="syncInfo">Attendance &amp; Sailor's Report · 2026</p>
+    </div>
+    <div class="spacer"></div>
+    <span class="badge b-mut" id="syncPill" title="Live sync status">● snapshot</span>
+    <button class="btn" onclick="exportAll()">↓ Export</button>
+    <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">◐</button>
+  </div>
+  <nav class="tabs"><div class="tabs-in">
+    <button class="tab on" data-v="att">▦ Attendance</button>
+    <button class="tab" data-v="sail">⚑ Sailor's Report</button>
+    <button class="tab" data-v="db">✎ Data Editor <span class="cnt" id="ovrCount">0</span></button>
+  </div></nav>
+</header>
+
+<main>
+<!-- ================= ATTENDANCE ================= -->
+<section class="view on" id="view-att">
+  <div class="toolbar">
+    <div class="chips" id="monthChips"></div>
+    <div class="spacer"></div>
+    <label class="field">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="q" placeholder="Search name / ID…" oninput="renderAtt()">
+    </label>
+    <select id="teamSel" onchange="renderAtt()" style="height:36px"><option value="">All teams</option></select>
+    <select id="bandSel" onchange="renderAtt()" style="height:36px">
+      <option value="">Avg hours: any</option><option value="<9">Below 9h</option><option value=">9">Above 9h</option>
+    </select>
+    <label class="tgl"><input type="checkbox" id="onsiteTgl" onchange="renderAtt()" checked> Onsite only</label>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="panel">
+    <div class="panel-h">
+      <h3>Monthly Attendance Summary</h3>
+      <span class="hint" id="tblHint"></span>
+      <div class="spacer"></div>
+      <span class="hint">click a row for detail · click headers to sort</span>
+    </div>
+    <div class="tblwrap"><table id="attTbl">
+      <thead><tr>
+        <th data-k="name">Employee<span class="arr"></span></th>
+        <th data-k="team">Team<span class="arr"></span></th>
+        <th data-k="perks">Perks<span class="arr"></span></th>
+        <th data-k="wd">Weekdays<span class="arr"></span></th>
+        <th data-k="att">Days Attended<span class="arr"></span></th>
+        <th data-k="absent">Absent<span class="arr"></span></th>
+        <th data-k="late">Late Days<span class="arr"></span></th>
+        <th data-k="b8">&lt;8h Days<span class="arr"></span></th>
+        <th data-k="eco">Early Check-out<span class="arr"></span></th>
+        <th data-k="avg">Avg Daily Hrs<span class="arr"></span></th>
+        <th data-k="band">Band<span class="arr"></span></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ================= SAILOR'S REPORT ================= -->
+<section class="view" id="view-sail">
+  <div class="toolbar">
+    <div class="chips" id="sailChips"></div>
+    <div class="spacer"></div>
+    <input type="text" id="sailQ" placeholder="Filter criteria…" style="height:36px;width:210px" oninput="renderSail()">
+    <label class="tgl"><input type="checkbox" id="flagOnly" onchange="renderSail()"> Flagged only</label>
+  </div>
+  <div class="kpis" id="sailKpis"></div>
+  <div class="panel">
+    <div class="panel-h">
+      <h3>Sailor's Report — <span id="sailMonthLbl"></span></h3>
+      <span class="hint">criteria #3–7 auto-computed from attendance · others manual</span>
+      <div class="spacer"></div>
+    </div>
+    <div id="critList"></div>
+  </div>
+</section>
+
+<!-- ================= DATA EDITOR ================= -->
+<section class="view" id="view-db">
+  <div class="toolbar">
+    <span class="hint" style="font-size:13px">Manual corrections are stored locally and override synced sheet values.</span>
+    <div class="spacer"></div>
+    <button class="btn danger" onclick="resetOverrides()">↺ Reset all manual edits</button>
+  </div>
+  <div class="kpis">
+    <div class="kpi" style="--kc:var(--info);--kb:var(--infobg)"><span class="lbl">Manual edits</span><span class="val" id="dbCount">0</span><span class="sub">stored in this browser</span></div>
+    <div class="kpi" style="--kc:var(--ok);--kb:var(--okbg)"><span class="lbl">Sync source</span><span class="val" style="font-size:15px;line-height:38px">Google Sheets</span><span class="sub">Sample of Attendance-2026 · Sailor's Report-2026</span></div>
+  </div>
+  <div class="panel">
+    <div class="panel-h"><h3>Override log</h3></div>
+    <div class="tblwrap" style="max-height:50vh"><table>
+      <thead><tr><th>Type</th><th>Target</th><th>Field</th><th>Value</th><th></th></tr></thead>
+      <tbody id="ovrBody"><tr><td colspan="5" class="empty-state">No manual edits yet.<p>Edit values from the Attendance table (row menu) or Sailor's Report (+ Add).</p></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+</main>
+
+<footer>PX Team Dashboard · v1 · Data: Sample of Attendance-2026 &amp; Sailor's Report-2026 with Sample Data · Weekends: Fri &amp; Sat</footer>
+
+<div class="overlay" id="ovl" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalBox"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const DATA = /*DATA_PLACEHOLDER*/null;
+
+/* ============ state ============ */
+const LS_KEY = "pxdash-overrides-v1";
+let OVR = load();
+function load(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{att:{},sail:{}}}catch(e){return{att:{},sail:{}}} }
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(OVR)); document.getElementById("ovrCount").textContent = ovrTotal(); }
+function ovrTotal(){ return Object.keys(OVR.att).length + Object.keys(OVR.sail).length; }
+
+let selMonths = new Set([DATA.months[DATA.months.length-1]]);
+let sailMonth = DATA.months[DATA.months.length-1];
+let sortKey = "name", sortDir = 1;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const initials = n => n.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+const fmtHrs = h => h==null ? "—" : (Math.floor(h)+"h "+String(Math.round((h%1)*60)).padStart(2,"0")+"m");
+const fmtClock = m => m==null ? "" : String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
+const isOnsite = e => !/remote/i.test((e.perks||"")+(e.team||""));
+
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),2200); }
+
+/* ============ effective (override-aware) rows ============ */
+function effRow(emp, month){
+  const base = {...DATA.employees[month].find(e=>e.id===emp)};
+  const o = OVR.att?.[emp+"@"+month];
+  if(o) Object.assign(base, o);
+  return base;
+}
+function effRows(month){
+  return DATA.employees[month].map(e => effRow(e.id, month));
+}
+function effSail(month){
+  // returns array of {entries, auto:boolean, edited:boolean} aligned to DATA.sailorCriteria
+  return DATA.sailorCriteria.map((c,i)=>{
+    const key = month+"#"+i;
+    if(OVR.sail?.[key]) return {entries:OVR.sail[key], edited:true};
+    const AUTO_IDX = {2:"late",3:"partial",4:"early",5:"avg_lt9",6:"avg_gt9"};
+    if(AUTO_IDX[i]!==undefined && DATA.sailors[month]) return {entries:(DATA.sailors[month][AUTO_IDX[i]]||[]), edited:false};
+    const man = DATA.sailorManual[month]?.[c.c];
+    return {entries:man||[], edited:false};
+  });
+}
+
+/* ============ tabs ============ */
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===t));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id==="view-"+t.dataset.v));
+});
+function toggleTheme(){
+  document.body.classList.toggle("light");
+  localStorage.setItem("pxdash-theme", document.body.classList.contains("light")?"light":"dark");
+}
+if(localStorage.getItem("pxdash-theme")==="light") document.body.classList.add("light");
+
+/* ============ attendance render ============ */
+function initChips(elId, setter, multi){
+  const el = $("#"+elId);
+  el.innerHTML = DATA.months.map(m=>`<button class="chip ${multi&&selMonths.has(m)||!multi&&sailMonth===m?"on":""}" data-m="${m}">${m.slice(0,3)}</button>`).join("");
+  el.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
+    const m=c.dataset.m;
+    if(multi){ selMonths.has(m)?selMonths.delete(m):selMonths.add(m); if(!selMonths.size)selMonths.add(DATA.months.at(-1)); }
+    else sailMonth=m;
+    setter();
+  });
+}
+function refreshChips(){
+  initChips("monthChips", ()=>{refreshChips();renderAtt();}, true);
+  initChips("sailChips", ()=>{sailMonth=sailMonth;refreshChips();renderSail();}, false);
+}
+
+function filteredRows(){
+  const q = $("#q").value.trim().toLowerCase();
+  const team = $("#teamSel").value;
+  const band = $("#bandSel").value;
+  const onsite = $("#onsiteTgl").checked;
+  let rows=[];
+  selMonths.forEach(m=>effRows(m).forEach(r=>rows.push({...r,_m:m})));
+  if(selMonths.size>1) $("#tblHint").textContent = `${rows.length} rows across ${selMonths.size} months`;
+  else $("#tblHint").textContent = `${rows.length} employees · ${[...selMonths][0]} 2026`;
+  return rows.filter(r=>{
+    if(onsite && !isOnsite(r)) return false;
+    if(team && r.team!==team) return false;
+    if(band){ if(band==="<9"&&!(r.avg!=null&&r.avg<9)) return false; if(band===">9"&&!(r.avg!=null&&r.avg>9)) return false; }
+    if(q && !(r.name.toLowerCase().includes(q)||r.id.toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+function renderKpis(rows){
+  const n=rows.length;
+  const totWd=rows.reduce((s,r)=>s+r.wd,0), totAtt=rows.reduce((s,r)=>s+r.att,0);
+  const late=rows.reduce((s,r)=>s+r.late,0), eco=rows.reduce((s,r)=>s+r.eco,0), b8=rows.reduce((s,r)=>s+r.b8,0);
+  const avgs=rows.filter(r=>r.avg!=null);
+  const avgAll=avgs.length?(avgs.reduce((s,r)=>s+r.avg,0)/avgs.length):null;
+  $("#kpis").innerHTML=[
+    ["Employees", n, "active in selection", "var(--acc)", "rgba(91,140,255,.12)", "👥"],
+    ["Attendance rate", totWd?Math.round(totAtt/totWd*100)+"%":"—", `${totAtt} of ${totWd} weekdays`, "var(--ok)","var(--okbg)","✓"],
+    ["Late days", late, "clock-in after 10:00 AM","var(--warn)","var(--warnbg)","⏰"],
+    ["&lt;8h days", b8,"partial attendance days","var(--info)","var(--infobg)","◔"],
+    ["Early check-outs", eco,"leave before 7:00 PM","var(--bad)","var(--badbg)","↪"],
+    ["Avg office hrs", avgAll!=null?avgAll.toFixed(1)+"h":"—","across attended days","var(--acc2)","rgba(139,92,255,.12)","◷"],
+  ].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
+}
+
+function renderAtt(){
+  const rows = filteredRows();
+  renderKpis(rows);
+  rows.sort((a,b)=>{
+    let va=a[sortKey], vb=b[sortKey];
+    if(typeof va==="string"){ va=va.toLowerCase(); vb=(vb||"").toLowerCase(); return va.localeCompare(vb)*sortDir; }
+    va=va??-1; vb=vb??-1; return (va-vb)*sortDir || a.name.localeCompare(b.name);
+  });
+  const tb=$("#attTbl tbody");
+  tb.innerHTML = rows.map(r=>{
+    const edited = !!OVR.att?.[r.id+"@"+r._m];
+    const bandCls = r.band==="<9" ? "b-info" : "b-ok";
+    const attPct = r.wd? Math.round(r.att/r.wd*100):0;
+    return `<tr onclick="openEmp('${esc(r.id)}','${r._m}')">
+      <td><div class="emp-cell"><span class="avat">${esc(initials(r.name))}</span><div><div class="nm">${esc(r.name)}${edited?'<span class="dot-edited" title="manually edited"></span>':''}</div><div class="id">${esc(r.id)}${selMonths.size>1?' · '+r._m.slice(0,3):''}</div></div></div></td>
+      <td>${esc(r.team||"—")}</td>
+      <td><span class="badge b-mut">${esc(r.perks||"—")}</span></td>
+      <td>${r.wd}</td>
+      <td><b>${r.att}</b> <span class="${attPct>=80?"num-good":attPct>=50?"num-warn":"num-bad"}" style="font-size:11px">${attPct}%</span></td>
+      <td class="${r.absent>3?"num-bad":""}">${r.absent}</td>
+      <td class="${r.late>3?"num-bad":r.late>0?"num-warn":""}">${r.late}</td>
+      <td class="${r.b8>3?"num-bad":""}">${r.b8}</td>
+      <td class="${r.eco>3?"num-bad":""}">${r.eco}</td>
+      <td>${r.avg!=null?r.avg.toFixed(2)+"h":"—"}</td>
+      <td><span class="badge ${bandCls}">${r.band==="<9"?"&lt; 9h":r.band===">9"?"> 9h":"—"}</span></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="11" class="empty-state">No employees match the filters<p>Try clearing search or toggling “Onsite only”.</p></td></tr>`;
+  document.querySelectorAll("#attTbl thead th").forEach(th=>{
+    th.querySelector(".arr").textContent = th.dataset.k===sortKey ? (sortDir>0?"↑":"↓") : "";
+    th.onclick = ()=>{ if(sortKey===th.dataset.k) sortDir*=-1; else {sortKey=th.dataset.k; sortDir=1;} renderAtt(); };
+  });
+}
+
+/* ============ employee modal ============ */
+function openEmp(id, month){
+  const r = effRow(id, month);
+  const prof = DATA.profiles[id]||{};
+  const hist = DATA.months.map(m=>{
+    const row = DATA.employees[m].find(e=>e.id===id);
+    return row?{m,...row}:null;
+  }).filter(Boolean);
+  const maxAtt = Math.max(...hist.map(h=>h.att),1);
+  const daily = (DATA.daily[month]||[]).filter(d=>d[0]===id);
+  const o = OVR.att?.[id+"@"+month]||{};
+  $("#modalBox").innerHTML = `
+    <div class="modal-h">
+      <span class="avat">${esc(initials(r.name))}</span>
+      <div><h3>${esc(r.name)}</h3><div class="sub">${esc(id)} · ${esc(prof.perks||r.perks||"—")} · ${esc(prof.team||r.team||"—")}</div></div>
+      <button class="x-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-b">
+      <div class="sec-t">${month} snapshot</div>
+      <div class="mstats">
+        <div class="ms"><div class="l">Days attended</div><div class="v">${r.att}<span style="font-size:12px;color:var(--mut)">/${r.wd}</span></div></div>
+        <div class="ms"><div class="l">Absent</div><div class="v" style="color:${r.absent>3?"var(--bad)":"inherit"}">${r.absent}</div></div>
+        <div class="ms"><div class="l">Late days</div><div class="v" style="color:${r.late>3?"var(--bad)":r.late?"var(--warn)":"inherit"}">${r.late}</div></div>
+        <div class="ms"><div class="l">&lt;8h days</div><div class="v">${r.b8}</div></div>
+        <div class="ms"><div class="l">Early outs</div><div class="v">${r.eco}</div></div>
+        <div class="ms"><div class="l">Avg daily</div><div class="v">${r.avg!=null?r.avg.toFixed(2)+"h":"—"}<div style="font-size:10px;font-weight:700;color:var(--mut)">${r.band==="<9"?"below 9h":r.band===">9"?"above 9h":""}</div></div></div>
+      </div>
+
+      <div class="sec-t">Trend — attended days by month</div>
+      <div class="spark">${hist.map(h=>`
+        <div class="bar" title="${h.m}: ${h.att} attended, ${h.late} late">
+          <i style="height:${Math.max(6,h.att/maxAtt*100)}%;background:${h.m===month?"var(--grad)":"var(--acc)"};opacity:${h.m===month?1:.45}"></i>
+          <span>${h.m.slice(0,3)}</span>
+        </div>`).join("")}
+      </div>
+
+      <div class="sec-t">Daily log — ${month} <span style="text-transform:none;font-weight:500">(weekends Fri/Sat shown dimmed)</span></div>
+      <div class="tblwrap" style="max-height:240px">
+        <table><thead><tr><th>Date</th><th>Day</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead><tbody>
+        ${daily.map(d=>{
+          const dt=new Date("2026-"+d[1]); const dow=dt.getDay();
+          const wk = dow===5||dow===6;
+          const hrs = d[2]!=null&&d[3]!=null ? ((d[3]-d[2]+1440)%1440)/60 : null;
+          return `<tr style="${wk?"opacity:.45":""}">
+            <td>${d[1]}</td><td style="color:var(--mut)">${wk?"Weekend":"Weekday"}</td>
+            <td>${fmtClock(d[2])||"—"}</td><td>${fmtClock(d[3])||"—"}</td>
+            <td>${hrs!=null?hrs.toFixed(2)+"h":"—"}</td>
+            <td><span class="badge ${d[4]==="Late"?"b-bad":d[4]==="On Time"?"b-ok":"b-mut"}">${d[4]}</span></td></tr>`;
+        }).join("")}
+        </tbody></table>
+      </div>
+
+      <div class="sec-t">Manual correction</div>
+      <div class="edit-grid">
+        ${[["att","Days attended"],["late","Late days"],["b8","<8h days"],["eco","Early outs"]].map(([k,l])=>`
+          <div><label>${l}</label><input type="number" min="0" id="ed_${k}" value="${o[k]??r[k]}"></div>`).join("")}
+        <div><label>Avg daily hours</label><input type="number" step="0.01" min="0" id="ed_avg" value="${o.avg??r.avg??""}"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn pri" onclick="saveEmp('${esc(id)}','${month}')">Save correction</button>
+        ${o&&Object.keys(o).length?`<button class="btn danger" onclick="clearEmp('${esc(id)}','${month}')">Revert to sheet</button>`:""}
+      </div>
+    </div>`;
+  $("#ovl").classList.add("on");
+}
+function closeModal(){ $("#ovl").classList.remove("on"); }
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
+function saveEmp(id, month){
+  const g=k=>{const v=$("#ed_"+k).value.trim();return v===""?null:Number(v);};
+  const patch={};
+  ["att","late","b8","eco"].forEach(k=>{const v=g(k); if(v!=null&&!Number.isNaN(v)&&v>=0)patch[k]=v;});
+  const av=g("avg"); if(av!=null&&!Number.isNaN(av)&&av>=0){patch.avg=av; patch.band=av<9?"<9":">9";}
+  if(!Object.keys(patch).length){toast("Nothing to save");return;}
+  OVR.att[id+"@"+month]={...(OVR.att[id+"@"+month]||{}),...patch};
+  save(); renderAtt(); openEmp(id,month); toast("Saved manual correction");
+}
+function clearEmp(id,month){ delete OVR.att[id+"@"+month]; save(); renderAtt(); openEmp(id,month); toast("Reverted to sheet values"); }
+
+/* ============ sailor render ============ */
+const AUTO_IDX = {2:"late",3:"partial",4:"early",5:"avg_lt9",6:"avg_gt9"};
+function respClass(resp){
+  if(/project/i.test(resp)) return "t-prj";
+  if(/accounts/i.test(resp)) return "t-acc";
+  return "t-px";
+}
+function entryHot(idx,v){
+  const f=parseFloat(String(v).replace(":", "."));
+  switch(idx){
+    case 0: case 2: case 3: case 4: return f>3;          // meal, partial, early thresholds >3
+    case 1: return f>2;                                   // home office >2 (also extra workdays idx15)
+    case 7: case 9: case 11: case 15: return f>2;
+    default: return false;
+  }
+}
+function renderSail(){
+  $("#sailMonthLbl").textContent = sailMonth+" 2026";
+  const q=$("#sailQ").value.trim().toLowerCase();
+  const flagOnly=$("#flagOnly").checked;
+  const rows=effSail(sailMonth);
+  const flagged=rows.filter((r,i)=>r.entries.some(e=>entryHot(i,e.v))).length;
+  const filled=rows.filter(r=>r.entries.length).length;
+  $("#sailKpis").innerHTML=[
+    ["Criteria", DATA.sailorCriteria.length,"tracked per month","var(--acc)","rgba(91,140,255,.12)","☰"],
+    ["Flagged", flagged,"above threshold","var(--bad)","var(--badbg)","⚑"],
+    ["With data", filled,"criteria populated","var(--ok)","var(--okbg)","✓"],
+    ["Auto-computed", Object.keys(AUTO_IDX).length,"from attendance engine","var(--acc2)","rgba(139,92,255,.12)","⚙"],
+  ].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
+
+  $("#critList").innerHTML = DATA.sailorCriteria.map((c,i)=>{
+    if(q && !c.c.toLowerCase().includes(q)) return "";
+    const {entries,edited}=rows[i];
+    if(flagOnly && !entries.some(e=>entryHot(i,e.v))) return "";
+    const isAuto=AUTO_IDX[i]!==undefined;
+    return `<div class="crit-row">
+      <div class="crit-no">${String(i+1).padStart(2,"0")}</div>
+      <div class="crit-main">
+        <h4>${esc(c.c)}</h4>
+        <div class="crit-tags">
+          <span class="tag ${respClass(c.r)}">${esc(c.r)}</span>
+          ${isAuto?`<span class="tag t-auto">AUTO</span>`:""}
+          ${edited?`<span class="tag t-acc">MANUAL EDIT</span>`:""}
+        </div>
+        <div class="ppl">${entries.map((e,j)=>`
+          <span class="pp ${entryHot(i,e.v)?"hot":""}">
+            <b>${esc(e.n)}</b><span class="v">-${esc(e.v)}</span>
+            ${!isAuto?`<button class="x" title="remove" onclick="removeEntry(${i},${j})">×</button>`:""}
+          </span>`).join("")|| `<span class="none-txt">No entries for ${esc(sailMonth)}.</span>`}
+        </div>
+        ${!isAuto?`<div class="addform">
+          <input class="nm" id="add_nm_${i}" placeholder="Person / description…">
+          <input class="vl" id="add_v_${i}" placeholder="count/note">
+          <button class="btn pri" style="height:32px" onclick="addEntry(${i})">+ Add</button>
+        </div>`:`<div class="none-txt" style="margin-top:8px">Computed live from Attendance — ${monthLabel(AUTO_IDX[i])}.</div>`}
+      </div>
+    </div>`;
+  }).join("") || `<div class="empty-state">No criteria match.</div>`;
+}
+function monthLabel(k){return{late:"late check-ins > 3",partial:"partial (<8h) > 3",early:"early outs > 3","avg_lt9":"avg < 9h","avg_gt9":"avg > 9h"}[k]||k;}
+function addEntry(i){
+  const n=$("#add_nm_"+i).value.trim(), v=$("#add_v_"+i).value.trim()||"—";
+  if(!n){toast("Enter a name/description");return;}
+  const key=sailMonth+"#"+i;
+  const cur=(OVR.sail[key]||effSail(sailMonth)[i].entries).slice();
+  cur.push({n,v});
+  OVR.sail[key]=cur; save(); renderSail(); toast("Added entry");
+}
+function removeEntry(i,j){
+  const key=sailMonth+"#"+i;
+  const cur=(OVR.sail[key]||effSail(sailMonth)[i].entries).slice();
+  cur.splice(j,1);
+  OVR.sail[key]=cur; save(); renderSail(); toast("Removed entry");
+}
+
+/* ============ overrides log ============ */
+function renderOvrLog(){
+  $("#dbCount").textContent = String(ovrTotal());
+  const tb=$("#ovrBody");
+  const items=[];
+  Object.entries(OVR.att||{}).forEach(([k,o])=>{
+    const [id,month]=k.split("@");
+    const nm=DATA.profiles[id]?.name||id;
+    Object.entries(o).forEach(([f,v])=>items.push(["Attendance",`${nm} · ${month}`,f,v,id,month]));
+  });
+  Object.entries(OVR.sail||{}).forEach(([k,arr])=>{
+    const [month,ci]=k.split("#");
+    const crit=DATA.sailorCriteria[+ci]?.c||ci;
+    arr.forEach(e=>items.push(["Sailor's",`${crit} · ${month}`,e.n,e.v]));
+  });
+  if(!items.length){tb.innerHTML=`<tr><td colspan="5" class="empty-state">No manual edits yet.<p>Edit values from the Attendance table (employee popup) or Sailor's Report (+ Add).</p></td></tr>`;return;}
+  tb.innerHTML=items.map(it=>`<tr>
+    <td><span class="badge ${it[0]==="Attendance"?"b-info":"t-acc badge"}" style="${it[0]!=="Attendance"?"background:var(--warnbg);color:var(--warn)":""}">${it[0]}</span></td>
+    <td>${esc(it[1])}</td><td style="color:var(--mut)">${esc(String(it[2]))}</td><td><b>${esc(String(it[3]))}</b></td>
+    <td>${it[4]?`<button class="btn" style="height:26px;padding:0 10px" onclick="clearEmp('${esc(it[4])}','${it[5]}')">revert</button>`:""}</td>
+  </tr>`).join("");
+}
+function resetOverrides(){
+  if(!confirm("Remove ALL manual edits and restore sheet values?"))return;
+  OVR={att:{},sail:{}}; save(); renderAtt(); renderSail(); renderOvrLog(); toast("All manual edits cleared");
+}
+
+/* ============ export ============ */
+function dl(name,content,type){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name; a.click(); URL.revokeObjectURL(a.href);
+}
+function exportAll(){
+  const head="Month,Employee ID,Name,Team,Perks,Weekdays,Days Attended,Absent,Late Days,<8h Days,Early Checkouts,Avg Daily Hours,Band\n";
+  const body=DATA.months.flatMap(m=>effRows(m).map(r=>[m,r.id,r.name,r.team,r.perks,r.wd,r.att,r.absent,r.late,r.b8,r.eco,r.avg??"",r.band].map(x=>`"${x}"`).join(","))).join("\n");
+  dl("px-dashboard-attendance.csv",head+body,"text/csv");
+  toast("CSV exported");
+}
+
+/* ============ live sync (gviz JSONP) ============ */
+const SHEETS = {
+  att: { id:"1i5NrueAeZLEE4blFuX6D5Hdb6wAVuomI8zxYKLnpC5Y" },
+  sail:{ id:"1ItMz3DMVH9U2GkY5j_XOLssonrkO-VoQhqVUN49fWPU" }
+};
+const MONTH_GVIZ = {January:"January Attendance 2026",February:"February Attendance 2026",March:"March Attendance 2026",April:"April Attendance 2026",May:"May Attendance 2026",June:"June Attendance 2026",July:"July Attendance 2026",August:"August Attendance 2026",September:"September Attendance 2026",October:"October Attendance 2026",November:"November Attendance 2026",December:"December Attendance 2026"};
+const SAIL_TABS = [["Apr-2026","April"],["May-2026","May"],["Jun-2026","June"],["Jul-2026","July"],["Aug-2026","August"],["Sep-2026","September"],["Oct-2026","October"],["Nov-2026","November"],["Dec-2026","December"]];
+
+let gvizSeq = 0;
+function gvizFetch(sheetId, tab, cb){
+  const fn = "__gvizcb" + (++gvizSeq);
+  const tag = document.createElement("script");
+  let done = false;
+  window[fn] = data => {
+    if(done) return; done = true; cleanup();
+    if(data && data.status === "ok" && data.table) cb(gvizToRows(data.table));
+    else cb(null);
+  };
+  tag.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json;responseHandler:${fn}&sheet=${encodeURIComponent(tab)}&headers=1`;
+  function cleanup(){ delete window[fn]; tag.remove(); clearTimeout(tm); }
+  const tm = setTimeout(()=>{ if(!done){ done = true; cleanup(); cb(null); } }, 15000);
+  tag.onerror = ()=>{ if(!done){ done = true; cleanup(); cb(null); } };
+  document.head.appendChild(tag);
+}
+function gvizToRows(t){
+  const rows = [t.cols.map(c => (c.label||"").trim())];
+  (t.rows||[]).forEach(r => rows.push((r.c||[]).map(cell => {
+    if(!cell) return "";
+    if(cell.f != null) return String(cell.f);
+    const v = cell.v;
+    if(v == null) return "";
+    if(v instanceof Date){
+      const pad=n=>String(n).padStart(2,"0");
+      // time-of-day cells come through as dates on the 1899 epoch
+      if(v.getFullYear() <= 1900) return pad(v.getHours())+":"+pad(v.getMinutes());
+      return v.getFullYear()+"-"+pad(v.getMonth()+1)+"-"+pad(v.getDate());
+    }
+    return String(v);
+  })));
+  return rows;
+}
+
+/* --- calc engine (JS port of generate.py) --- */
+function parseDateJS(s){
+  s=(s||"").trim();
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+  m=s.match(/^(\d{1,2})-([A-Za-z]{3,})-(\d{4})$/);
+  if(m){ const d=new Date(m[1]+" "+m[2]+" "+m[3]); return isNaN(d)?null:d; }
+  return null;
+}
+function parseClockJS(s){
+  s=(s||"").trim(); if(!s) return null;
+  const m=s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if(!m) return null;
+  const h=+m[1], mi=+m[2];
+  if(h>23||mi>59) return null;
+  return h*60+mi;
+}
+function hhmmJS(mins){ const t=Math.round(mins); return Math.floor(t/3600)+":"+String(Math.floor(t%3600/60)).padStart(2,"0"); }
+function computeRows(raw){
+  return raw.map(r=>{
+    const cin=r.cin, cout=r.cout;
+    const status = cin==null&&cout==null ? "Absent" : (cin!=null&&cin>600 ? "Late" : "On Time");
+    let hours=null;
+    if(cin!=null&&cout!=null){ let m2=cout-cin; if(m2<0)m2+=1440; hours=Math.round(m2/60*100)/100; }
+    const dow=r.date.getDay();
+    return {...r, dow, status, hours,
+      attended: cin!=null, weekday: dow!==4&&dow!==5, // Fri=4,Sat=5 excluded
+      late: status==="Late",
+      below8: hours!=null&&hours<8,
+      earlyOut: cout!=null&&cout<19*60 };
+  });
+}
+function aggregateRows(rows){
+  const byEmp=new Map(), profs={};
+  rows.forEach(r=>{
+    if(!profs[r.emp]) profs[r.emp]={name:"",perks:"",team:""};
+    const p=profs[r.emp];
+    if(r.name)p.name=r.name; if(r.perks)p.perks=r.perks; if(r.team)p.team=r.team;
+    if(!byEmp.has(r.emp)) byEmp.set(r.emp,[]);
+    byEmp.get(r.emp).push(r);
+  });
+  const out=[];
+  for(const [emp,rs] of [...byEmp.entries()].sort((a,b)=>(profs[a[0]].name||a[0]).localeCompare(profs[b[0]].name||b[0]))){
+    const wd=rs.filter(r=>r.weekday), att=wd.filter(r=>r.attended);
+    const hrs=att.map(r=>r.hours).filter(h=>h!=null);
+    const avg=hrs.length?Math.round(hrs.reduce((s,h)=>s+h,0)/hrs.length*100)/100:null;
+    out.push({id:emp,name:profs[emp].name,perks:profs[emp].perks,team:profs[emp].team,
+      att:att.length, wd:wd.length, absent:wd.filter(r=>!r.attended).length,
+      late:att.filter(r=>r.late).length, b8:att.filter(r=>r.below8).length,
+      eco:att.filter(r=>r.earlyOut).length,
+      avg, band:avg==null?"":(avg<9?"<9":">9")});
+  }
+  return [out,profs];
+}
+function autoSailorsJS(aggs, profs){
+  const e={late:[],partial:[],early:[],avg_lt9:[],avg_gt9:[]};
+  aggs.forEach(a=>{
+    const p=profs[a.id]||{};
+    if(/remote/i.test((p.perks||"")+(p.team||""))) return;
+    if(a.late>3) e.late.push({n:a.name,v:String(a.late)});
+    if(a.b8>3) e.partial.push({n:a.name,v:String(a.b8)});
+    if(a.eco>3) e.early.push({n:a.name,v:String(a.eco)});
+    if(a.avg!=null){ if(a.avg<9) e.avg_lt9.push({n:a.name,v:hhmmJS(a.avg*3600)}); else if(a.avg>9) e.avg_gt9.push({n:a.name,v:hhmmJS(a.avg*3600)}); }
+  });
+  return e;
+}
+
+/* --- sync orchestration --- */
+function setPill(state,label){
+  const p=$("#syncPill");
+  p.className="badge "+(state==="live"?"p-live":state==="off"?"p-off":"p-sync");
+  p.textContent="● "+label;
+}
+async function syncLive(){
+  setPill("sync","syncing…");
+  const order = Object.keys(MONTH_GVIZ);
+  const settled = await Promise.all(order.map(month=>{
+    const tab = MONTH_GVIZ[month];
+    return new Promise(res=>gvizFetch(SHEETS.att.id, tab, rows=>{
+      if(!rows) return res(null);
+      const recs = rowsToRecords(rows, month);
+      res(recs ? [month, recs] : null);
+    }));
+  }));
+  const discovered = settled.filter(Boolean);
+  if(!discovered.length){ setPill("off","offline"); toast("Live sync unavailable — using embedded snapshot"); return; }
+  discovered.sort((a,b)=> order.indexOf(a[0]) - order.indexOf(b[0]));
+  const months=[], employees={}, daily={}, sailors={}, profiles={};
+  discovered.forEach(([month,recs])=>{
+    const rows=computeRows(recs);
+    const [aggs,profs]=aggregateRows(rows);
+    months.push(month); employees[month]=aggs;
+    Object.assign(profiles,profs);
+    daily[month]=rows.map(r=>[r.emp,(r.date.getMonth()+1)+"/"+(r.date.getDate()),r.cin,r.cout,r.status]);
+    sailors[month]=autoSailorsJS(aggs,profiles);
+  });
+  const sailorManual={};
+  const sailSettled = await Promise.all(SAIL_TABS.map(([tab,label])=>
+    new Promise(res=>gvizFetch(SHEETS.sail.id, tab, rows=>res(rows?[label,rows]:null)))
+  ));
+  for(const entry of sailSettled){
+    if(!entry) continue;
+    const [label, rows] = entry;
+    const parsed=parseSailorTab(rows);
+    if(parsed){ sailorManual[label]=parsed.manual; if(parsed.criteria.length) DATA.sailorCriteria=parsed.criteria; }
+  }
+  DATA.months=months; DATA.employees=employees; DATA.daily=daily;
+  DATA.sailors=sailors; DATA.profiles=profiles;
+  DATA.sailorManual=Object.keys(sailorManual).length?sailorManual:DATA.sailorManual;
+  setPill("live","live");
+  selMonths=new Set([months[months.length-1]]); sailMonth=months[months.length-1];
+  refreshChips(); renderAtt(); renderSail(); renderOvrLog();
+  $("#syncInfo").textContent=`Live · synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})} · ${months.length} month${months.length>1?"s":""}`;
+  toast("Live sync complete — "+months.join(", "));
+}
+function rowsToRecords(rows, month){
+  let hi=-1, cols=null;
+  for(let i=0;i<Math.min(rows.length,6);i++){
+    const cells=rows[i].map(c=>(c||"").trim());
+    if(cells.includes("Employee ID")&&cells.includes("Name")){ hi=i; cols={}; cells.forEach((n,ix)=>{ if(n&&!(n in cols))cols[n]=ix; }); break; }
+  }
+  if(hi<0) return null;
+  const recs=[];
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i], g=n=>{const ix=cols[n];return ix!=null&&ix<r.length?(r[ix]||"").trim():"";};
+    const emp=g("Employee ID"); const date=parseDateJS(g("Date"));
+    if(!emp||!date) continue;
+    const cin=parseClockJS(g("Clock In")), cout=parseClockJS(g("Clock Out"));
+    recs.push({emp,name:g("Name"),perks:g("Perks")||"",team:g("Department/Team")||g("Department")||"",date,cin,cout});
+  }
+  return recs.length?recs:null;
+}
+function parseSailorTab(rows){
+  let start=-1;
+  for(let i=0;i<3;i++){ if(rows[i]&&rows[i].some(c=>["Criteria","Name"].includes((c||"").trim()))){ start=i+1; break; } }
+  if(start<0) return null;
+  const crit=[], manual={};
+  for(let i=start;i<rows.length;i++){
+    const c=(rows[i][0]||"").trim(); if(!c) continue;
+    const resp=(rows[i][1]||"").trim();
+    if(!crit.some(x=>x.c===c)) crit.push({c,r:resp});
+    manual[c]=rows[i].slice(2).map(x=>(x||"").trim()).filter(Boolean);
+  }
+  return {criteria:crit, manual};
+}
+
+/* ============ boot ============ */
+(function boot(){
+  const teams=[...new Set(Object.values(DATA.employees)[0].map(e=>e.team).filter(Boolean))].sort();
+  $("#teamSel").innerHTML+=teams.map(t=>`<option>${esc(t)}</option>`).join("");
+  refreshChips();
+  renderAtt();
+  renderSail();
+  renderOvrLog();
+  save();
+  syncLive();
+})();
+</script>
+</body>
+</html>
