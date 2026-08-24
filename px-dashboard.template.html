@@ -189,41 +189,83 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <!-- ================= ATTENDANCE ================= -->
 <section class="view on" id="view-att">
   <div class="toolbar">
-    <div class="chips" id="monthChips"></div>
-    <div class="spacer"></div>
+    <select id="attMonthSel" onchange="renderAtt()" style="height:36px">
+      <option value="January">January</option>
+      <option value="February">February</option>
+      <option value="March">March</option>
+      <option value="April">April</option>
+      <option value="May">May</option>
+      <option value="June">June</option>
+      <option value="July">July</option>
+      <option value="August">August</option>
+      <option value="September">September</option>
+      <option value="October">October</option>
+      <option value="November">November</option>
+      <option value="December">December</option>
+    </select>
     <label class="field">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="q" placeholder="Search name / ID…" oninput="renderAtt()">
     </label>
     <select id="teamSel" onchange="renderAtt()" style="height:36px"><option value="">All teams</option></select>
-    <select id="bandSel" onchange="renderAtt()" style="height:36px">
-      <option value="">Avg hours: any</option><option value="<9">Below 9h</option><option value=">9">Above 9h</option>
+    <select id="statusSel" onchange="renderAtt()" style="height:36px">
+      <option value="">All Status</option><option value="On Time">On Time</option><option value="Late">Late</option><option value="Absent">Absent</option>
+    </select>
+    <select id="weekdaySel" onchange="renderAtt()" style="height:36px">
+      <option value="">Weekday / Weekend</option><option value="Weekday">Weekday</option><option value="Weekend">Weekend</option>
     </select>
     <label class="tgl"><input type="checkbox" id="onsiteTgl" onchange="renderAtt()" checked> Onsite only</label>
   </div>
 
   <div class="kpis" id="kpis"></div>
 
+  <div class="panel" id="summaryPanel" style="margin-bottom:18px">
+    <div class="panel-h">
+      <h3>Summary — <span id="summaryMonthLabel">January</span></h3>
+      <span class="hint">per Employee ID · click a summary row to filter the daily table</span>
+      <div class="spacer"></div>
+      <span class="hint" id="summaryHint"></span>
+    </div>
+    <div class="tblwrap" style="max-height:46vh"><table id="summaryTbl">
+      <thead><tr>
+        <th data-k="id">Employee ID</th>
+        <th data-k="name">Name</th>
+        <th data-k="wd" style="text-align:right">Total working days</th>
+        <th data-k="att" style="text-align:right">Attended days</th>
+        <th data-k="absent" style="text-align:right">Total Absent</th>
+        <th data-k="late" style="text-align:right">Total late</th>
+        <th data-k="onTime" style="text-align:right">Total On time</th>
+        <th data-k="b8" style="text-align:right">Less than 8 hours</th>
+        <th data-k="lt9" style="text-align:right">Avg Daily — &lt; 9 hours</th>
+        <th data-k="gt9" style="text-align:right">Avg Daily — &gt; 9 hours</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+
   <div class="panel">
     <div class="panel-h">
-      <h3>Monthly Attendance Summary</h3>
+      <h3>Monthly Attendance — <span id="attMonthLabel">January</span></h3>
       <span class="hint" id="tblHint"></span>
       <div class="spacer"></div>
-      <span class="hint">click a row for detail · click headers to sort</span>
+      <span class="hint">click a row for detail</span>
     </div>
     <div class="tblwrap"><table id="attTbl">
       <thead><tr>
-        <th data-k="name">Employee<span class="arr"></span></th>
-        <th data-k="team">Team<span class="arr"></span></th>
-        <th data-k="perks">Perks<span class="arr"></span></th>
-        <th data-k="wd">Weekdays<span class="arr"></span></th>
-        <th data-k="att">Days Attended<span class="arr"></span></th>
-        <th data-k="absent">Absent<span class="arr"></span></th>
-        <th data-k="late">Late Days<span class="arr"></span></th>
-        <th data-k="b8">&lt;8h Days<span class="arr"></span></th>
-        <th data-k="eco">Early Check-out<span class="arr"></span></th>
-        <th data-k="avg">Avg Daily Hrs<span class="arr"></span></th>
-        <th data-k="band">Band<span class="arr"></span></th>
+        <th data-k="id">Employee ID</th>
+        <th data-k="name">Name</th>
+        <th data-k="perks">Perks</th>
+        <th data-k="team">Department/Team</th>
+        <th data-k="date">Date</th>
+        <th data-k="weekFlag">Weekdays</th>
+        <th data-k="cin">Clock In</th>
+        <th data-k="cout">Clock Out</th>
+        <th data-k="status">Status</th>
+        <th data-k="early">Early checkout?</th>
+        <th data-k="work">Work Time per day</th>
+        <th>Avg Daily Office Hours<br><span style="font-weight:600;text-transform:none">&lt; 8 hours</span></th>
+        <th>Avg Daily Office Hours<br><span style="font-weight:600;text-transform:none">&lt; 9 hours</span></th>
+        <th>Avg Daily Office Hours<br><span style="font-weight:600;text-transform:none">&gt; 9 hours</span></th>
       </tr></thead>
       <tbody></tbody>
     </table></div>
@@ -287,9 +329,10 @@ function load(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{att:{},sa
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(OVR)); document.getElementById("ovrCount").textContent = ovrTotal(); }
 function ovrTotal(){ return Object.keys(OVR.att).length + Object.keys(OVR.sail).length; }
 
-let selMonths = new Set([DATA.months[DATA.months.length-1]]);
 let sailMonth = DATA.months[DATA.months.length-1];
 let sortKey = "name", sortDir = 1;
+let summarySort = "name", summaryDir = 1;
+let activeSummaryId = null;
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -333,87 +376,196 @@ function toggleTheme(){
 }
 if(localStorage.getItem("pxdash-theme")==="light") document.body.classList.add("light");
 
-/* ============ attendance render ============ */
-function initChips(elId, setter, multi){
+function initChips(elId, setter){
   const el = $("#"+elId);
-  el.innerHTML = DATA.months.map(m=>`<button class="chip ${multi&&selMonths.has(m)||!multi&&sailMonth===m?"on":""}" data-m="${m}">${m.slice(0,3)}</button>`).join("");
-  el.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
-    const m=c.dataset.m;
-    if(multi){ selMonths.has(m)?selMonths.delete(m):selMonths.add(m); if(!selMonths.size)selMonths.add(DATA.months.at(-1)); }
-    else sailMonth=m;
-    setter();
-  });
+  el.innerHTML = DATA.months.map(m=>`<button class="chip ${sailMonth===m?"on":""}" data-m="${m}">${m.slice(0,3)}</button>`).join("");
+  el.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{ sailMonth=c.dataset.m; setter(); });
 }
-function refreshChips(){
-  initChips("monthChips", ()=>{refreshChips();renderAtt();}, true);
-  initChips("sailChips", ()=>{sailMonth=sailMonth;refreshChips();renderSail();}, false);
+function refreshChipsSail(){ initChips("sailChips", ()=>{ refreshChipsSail(); renderSail(); }); }
+
+const ALL_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+function fmtDuration(h){ if(h==null) return "—"; const sec=Math.round(h*3600); const hh=String(Math.floor(sec/3600)).padStart(2,"0"); const mm=String(Math.floor((sec%3600)/60)).padStart(2,"0"); const ss=String(sec%60).padStart(2,"0"); return `${hh}:${mm}:${ss}`; }
+
+function buildMatrix(){
+  const ms = ALL_MONTHS;
+  const roster = new Map();
+  ms.forEach(m=>{(DATA.employees[m]||[]).forEach(e=>{ if(!roster.has(e.id)) roster.set(e.id,{name:e.name,team:e.team,perks:e.perks}); else { const pr=roster.get(e.id); if(!pr.team&&e.team) pr.team=e.team; if(!pr.perks&&e.perks) pr.perks=e.perks; } });});
+  for(const[id,prof] of Object.entries(DATA.profiles||{})){ if(!roster.has(id)) roster.set(id,{name:prof.name,team:prof.team,perks:prof.perks}); }
+  const idx=new Map(); ms.forEach(m=>{ const mp=new Map(); (DATA.employees[m]||[]).forEach(e=>{ mp.set(e.id, effRow(e.id,m)); }); idx.set(m,mp); });
+  return {ms,roster,idx};
+}
+let MATRIX={ms:[],roster:new Map(),idx:new Map()};
+function refreshMatrix(){ MATRIX=buildMatrix(); }
+
+function renderSummary(){
+  const mSel = document.getElementById("attMonthSel").value || "January";
+  document.getElementById("summaryMonthLabel").textContent = mSel;
+  const idx = MATRIX.idx.get(mSel);
+  if(!idx){ document.querySelector("#summaryTbl tbody").innerHTML=`<tr><td colspan="10" class="empty-state">No data for ${mSel}</td></tr>`; document.getElementById("summaryHint").textContent=""; return; }
+  const entries = [...idx.entries()].map(([id,r])=>({id, r, p: MATRIX.roster.get(id)}));
+  const dir = summaryDir;
+  entries.sort((a,b)=>{
+    let va, vb;
+    switch(summarySort){
+      case "id": va=a.id; vb=b.id; break;
+      case "name": va=a.p?.name||""; vb=b.p?.name||""; break;
+      case "wd": va=a.r.wd; vb=b.r.wd; break;
+      case "att": va=a.r.att; vb=b.r.att; break;
+      case "absent": va=a.r.absent; vb=b.r.absent; break;
+      case "late": va=a.r.late; vb=b.r.late; break;
+      case "onTime": va=(a.r.att - a.r.late); vb=(b.r.att - b.r.late); break;
+      case "b8": va=a.r.b8; vb=b.r.b8; break;
+      case "lt9": va=a.r.avg!=null && a.r.avg<9 ? a.r.avg : -1; vb=b.r.avg!=null && b.r.avg<9 ? b.r.avg : -1; break;
+      case "gt9": va=a.r.avg!=null && a.r.avg>9 ? a.r.avg : -1; vb=b.r.avg!=null && b.r.avg>9 ? b.r.avg : -1; break;
+      default: va=a.p?.name||""; vb=b.p?.name||"";
+    }
+    if(typeof va==="string") return va.localeCompare(String(vb))*dir;
+    return (va - vb)*dir || String(a.p?.name||"").localeCompare(String(b.p?.name||""));
+  });
+  document.querySelectorAll("#summaryTbl thead th[data-k]").forEach(th=>{
+    th.style.cursor="pointer";
+    th.onclick=()=>{ if(summarySort===th.dataset.k) summaryDir*=-1; else {summarySort=th.dataset.k; summaryDir=1;} renderSummary(); };
+    let arr=th.querySelector(".arr");
+    if(!arr){ th.innerHTML += ' <span class="arr"></span>'; arr=th.querySelector(".arr"); }
+    arr.textContent = th.dataset.k===summarySort ? (summaryDir>0?"↑":"↓") : "";
+  });
+  document.getElementById("summaryHint").textContent = entries.length + " employees";
+  const tb=document.querySelector("#summaryTbl tbody");
+  tb.innerHTML = entries.map(({id,r,p})=>{
+    const onTime = r.att - r.late;
+    const lt9 = r.avg!=null && r.avg<9 ? fmtDuration(r.avg) : "—";
+    const gt9 = r.avg!=null && r.avg>9 ? fmtDuration(r.avg) : "—";
+    const sel = activeSummaryId===id ? ' style="background:var(--card2)"' : "";
+    const escId = id.replace(/'/g,"\'");
+    return `<tr${sel} onclick="document.getElementById(\'q\').value=\'\'; activeSummaryId='${escId}'; renderSummary(); renderAtt(); document.getElementById(\'attTbl\').scrollIntoView({behavior:'smooth',block:'start'});">
+      <td>${esc(id)}</td>
+      <td>${esc(p?.name||id)}</td>
+      <td style="text-align:right">${r.wd}</td>
+      <td style="text-align:right"><b>${r.att}</b></td>
+      <td style="text-align:right" class="${r.absent>0?"num-bad":""}">${r.absent}</td>
+      <td style="text-align:right" class="${r.late>0?"num-warn":""}">${r.late}</td>
+      <td style="text-align:right" class="${onTime>0?"num-good":""}">${onTime}</td>
+      <td style="text-align:right">${r.b8}</td>
+      <td style="text-align:right">${esc(lt9)}</td>
+      <td style="text-align:right">${esc(gt9)}</td>
+    </tr>`;
+  }).join("");
 }
 
-function filteredRows(){
-  const q = $("#q").value.trim().toLowerCase();
-  const team = $("#teamSel").value;
-  const band = $("#bandSel").value;
-  const onsite = $("#onsiteTgl").checked;
-  let rows=[];
-  selMonths.forEach(m=>effRows(m).forEach(r=>rows.push({...r,_m:m})));
-  if(selMonths.size>1) $("#tblHint").textContent = `${rows.length} rows across ${selMonths.size} months`;
-  else $("#tblHint").textContent = `${rows.length} employees · ${[...selMonths][0]} 2026`;
-  return rows.filter(r=>{
-    if(onsite && !isOnsite(r)) return false;
+
+function monthKey(m){ return m; }
+function dailyRowsFor(month){
+  const rows=(DATA.daily[month]||[]).map(d=>({emp:d[0],date:d[1],cin:d[2],cout:d[3],status:d[4]}));
+  return rows;
+}
+function attDailyFor(month){
+  // Build daily rows from live computed DATA.daily + supplements from MATRIX aggregates for avg cols
+  const daily=(DATA.daily[month]||[]).map(d=>({emp:d[0],date:d[1],cin:d[2],cout:d[3],status:d[4]}));
+  // index by emp+date for quick merge with computed rows (weekFlag/hours/early)
+  const idx={};
+  (DATA.daily[month]||[]); // placeholder keep
+  return daily;
+}
+function renderAtt(){
+  const mSel = document.getElementById("attMonthSel").value || "January";
+  document.getElementById("attMonthLabel").textContent = mSel;
+  renderSummary();
+  const q=$("#q").value.trim().toLowerCase();
+  const team=$("#teamSel").value;
+  const statusF=$("#statusSel").value;
+  const wdF=$("#weekdaySel").value;
+  const onsite=$("#onsiteTgl").checked;
+  // Build daily rows for this month from live daily + supplement with profile
+  const profMap = DATA.profiles || {};
+  let rows = [];
+  // Use MATRIX source for daily? Prefer DATA.daily which is live; fall back to matrix daily via syncLive daily map
+  const daily = (DATA.daily[mSel]||[]);
+  for(const d of daily){
+    const emp=d[0], dateStr=d[1], cin=d[2], cout=d[3], status=d[4];
+    const prof = profMap[emp]||{};
+    const teamV = prof.team || (MATRIX.idx.get(mSel)?.get(emp)?.team) || "";
+    const perksV = prof.perks || (MATRIX.idx.get(mSel)?.get(emp)?.perks) || "";
+    const nameV = prof.name || (MATRIX.roster.get(emp)?.name) || emp;
+    const weekFlag = ""; // will be derived from date dow if needed; but better: use sheet Weekdays via MATRIX? keep from recs via weekFlag stored? For now derive.
+    // Derive weekFlag from date when not stored (fallback Fri/Sat)
+    let wf = "";
+    const parts=dateStr.includes("-")?dateStr.split("-"):dateStr.split("/");
+    let dowWeek="";
+    if(parts.length>=2){
+      const mm=parseInt(parts[0],10), dd=parseInt(parts[1],10);
+      if(!isNaN(mm)&&!isNaN(dd)){ const dow=new Date(2026,mm-1,dd).getDay(); dowWeek=(dow===4||dow===5)?"Weekend":"Weekday"; }
+    }
+    const dowLabel = dowWeek;
+    const hours = (cin!=null&&cout!=null)? ((cout-cin+1440)%1440)/60 : null;
+    const workStr = hours!=null ? (Math.floor(hours)+":"+String(Math.round((hours%1)*60)).padStart(2,"0")+":00") : "—";
+    const early = cout!=null && cout<19*60 ? "Yes" : (cin!=null?"No":"—");
+    const agg = MATRIX.idx.get(mSel)?.get(emp);
+    const avgLess8 = agg && agg.avg!=null && agg.avg<8 ? agg.avg.toFixed(2)+"h" : "—";
+    const avgLess9 = agg && agg.avg!=null && agg.avg<9 ? agg.avg.toFixed(2)+"h" : "—";
+    const avgMore9 = agg && agg.avg!=null && agg.avg>9 ? agg.avg.toFixed(2)+"h" : "—";
+    rows.push({emp,name:nameV,perks:perksV,team:teamV,date:dateStr,weekFlag:dowLabel,cin,cout,status,early,workStr,avgLess8,avgLess9,avgMore9,agg});
+  }
+  // Filters
+  rows = rows.filter(r=>{
+    if(onsite && !isOnsite({perks:r.perks,team:r.team})) return false;
     if(team && r.team!==team) return false;
-    if(band){ if(band==="<9"&&!(r.avg!=null&&r.avg<9)) return false; if(band===">9"&&!(r.avg!=null&&r.avg>9)) return false; }
-    if(q && !(r.name.toLowerCase().includes(q)||r.id.toLowerCase().includes(q))) return false;
+    if(statusF && r.status!==statusF) return false;
+    if(wdF && r.weekFlag!==wdF) return false;
+    if(q && !(r.name.toLowerCase().includes(q)||r.emp.toLowerCase().includes(q))) return false;
     return true;
   });
-}
-
-function renderKpis(rows){
-  const n=rows.length;
-  const totWd=rows.reduce((s,r)=>s+r.wd,0), totAtt=rows.reduce((s,r)=>s+r.att,0);
-  const late=rows.reduce((s,r)=>s+r.late,0), eco=rows.reduce((s,r)=>s+r.eco,0), b8=rows.reduce((s,r)=>s+r.b8,0);
-  const avgs=rows.filter(r=>r.avg!=null);
-  const avgAll=avgs.length?(avgs.reduce((s,r)=>s+r.avg,0)/avgs.length):null;
-  $("#kpis").innerHTML=[
-    ["Employees", n, "active in selection", "var(--acc)", "rgba(91,140,255,.12)", "👥"],
-    ["Attendance rate", totWd?Math.round(totAtt/totWd*100)+"%":"—", `${totAtt} of ${totWd} weekdays`, "var(--ok)","var(--okbg)","✓"],
-    ["Late days", late, "clock-in after 10:00 AM","var(--warn)","var(--warnbg)","⏰"],
-    ["&lt;8h days", b8,"partial attendance days","var(--info)","var(--infobg)","◔"],
-    ["Early check-outs", eco,"leave before 7:00 PM","var(--bad)","var(--badbg)","↪"],
-    ["Avg office hrs", avgAll!=null?avgAll.toFixed(1)+"h":"—","across attended days","var(--acc2)","rgba(139,92,255,.12)","◷"],
-  ].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
-}
-
-function renderAtt(){
-  const rows = filteredRows();
-  renderKpis(rows);
-  rows.sort((a,b)=>{
-    let va=a[sortKey], vb=b[sortKey];
-    if(typeof va==="string"){ va=va.toLowerCase(); vb=(vb||"").toLowerCase(); return va.localeCompare(vb)*sortDir; }
-    va=va??-1; vb=vb??-1; return (va-vb)*sortDir || a.name.localeCompare(b.name);
-  });
+  // Sort by data-k?
   const tb=$("#attTbl tbody");
-  tb.innerHTML = rows.map(r=>{
-    const edited = !!OVR.att?.[r.id+"@"+r._m];
-    const bandCls = r.band==="<9" ? "b-info" : "b-ok";
-    const attPct = r.wd? Math.round(r.att/r.wd*100):0;
-    return `<tr onclick="openEmp('${esc(r.id)}','${r._m}')">
-      <td><div class="emp-cell"><span class="avat">${esc(initials(r.name))}</span><div><div class="nm">${esc(r.name)}${edited?'<span class="dot-edited" title="manually edited"></span>':''}</div><div class="id">${esc(r.id)}${selMonths.size>1?' · '+r._m.slice(0,3):''}</div></div></div></td>
-      <td>${esc(r.team||"—")}</td>
-      <td><span class="badge b-mut">${esc(r.perks||"—")}</span></td>
-      <td>${r.wd}</td>
-      <td><b>${r.att}</b> <span class="${attPct>=80?"num-good":attPct>=50?"num-warn":"num-bad"}" style="font-size:11px">${attPct}%</span></td>
-      <td class="${r.absent>3?"num-bad":""}">${r.absent}</td>
-      <td class="${r.late>3?"num-bad":r.late>0?"num-warn":""}">${r.late}</td>
-      <td class="${r.b8>3?"num-bad":""}">${r.b8}</td>
-      <td class="${r.eco>3?"num-bad":""}">${r.eco}</td>
-      <td>${r.avg!=null?r.avg.toFixed(2)+"h":"—"}</td>
-      <td><span class="badge ${bandCls}">${r.band==="<9"?"&lt; 9h":r.band===">9"?"> 9h":"—"}</span></td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="11" class="empty-state">No employees match the filters<p>Try clearing search or toggling “Onsite only”.</p></td></tr>`;
-  document.querySelectorAll("#attTbl thead th").forEach(th=>{
-    th.querySelector(".arr").textContent = th.dataset.k===sortKey ? (sortDir>0?"↑":"↓") : "";
-    th.onclick = ()=>{ if(sortKey===th.dataset.k) sortDir*=-1; else {sortKey=th.dataset.k; sortDir=1;} renderAtt(); };
+  // Header sort
+  document.querySelectorAll("#attTbl thead th[data-k]").forEach(th=>{
+    th.style.cursor="pointer";
+    th.onclick=()=>{ sortKey=th.dataset.k; sortDir*=-1; renderAtt(); };
   });
+  rows.sort((a,b)=>{
+    const dir=sortDir;
+    let va, vb;
+    switch(sortKey){
+      case "id": va=a.emp; vb=b.emp; break;
+      case "name": va=a.name; vb=b.name; break;
+      case "perks": va=a.perks; vb=b.perks; break;
+      case "team": va=a.team; vb=b.team; break;
+      case "date": va=a.date; vb=b.date; break;
+      case "weekFlag": va=a.weekFlag; vb=b.weekFlag; break;
+      case "cin": va=a.cin??-1; vb=b.cin??-1; break;
+      case "cout": va=a.cout??-1; vb=b.cout??-1; break;
+      case "status": va=a.status; vb=b.status; break;
+      case "early": va=a.early; vb=b.early; break;
+      case "work": va=a.workStr; vb=b.workStr; break;
+      default: va=a.name; vb=b.name;
+    }
+    if(typeof va==="string") return va.localeCompare(String(vb))*dir;
+    return (va - vb)*dir;
+  });
+  // KPIs for this month
+  const flat = rows;
+  const n=new Set(rows.map(r=>r.emp)).size;
+  const wdCount = rows.filter(r=>r.weekFlag==="Weekday").length;
+  const attCount = rows.filter(r=>r.cin!=null).length;
+  $("#kpis").innerHTML=[["Employees",n,"distinct in month","var(--acc)","rgba(91,140,255,.12)","👥"],["Weekdays",wdCount,"Weekday rows","var(--ok)","var(--okbg)","✓"],["Attended",attCount,"clock-in present","var(--warn)","var(--warnbg)","⏰"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
+  $("#tblHint").textContent = n + " employees · " + rows.length + " rows · " + mSel + " 2026";
+  if(!rows.length){ tb.innerHTML=`<tr><td colspan="14" class="empty-state">No rows for ${mSel} with current filters</td></tr>`; return; }
+  tb.innerHTML = rows.map(r=>`
+    <tr onclick="openEmp('${esc(r.emp)}','${mSel}')">
+      <td>${esc(r.emp)}</td>
+      <td><div class="emp-cell"><span class="avat">${esc(initials(r.name))}</span><div><div class="nm">${esc(r.name)}</div></div></div></td>
+      <td><span class="badge b-mut">${esc(r.perks||"—")}</span></td>
+      <td>${esc(r.team||"—")}</td>
+      <td>${esc(r.date)}</td>
+      <td>${esc(r.weekFlag||"—")}</td>
+      <td>${r.cin!=null?fmtClock(r.cin):"—"}</td>
+      <td>${r.cout!=null?fmtClock(r.cout):"—"}</td>
+      <td><span class="badge ${r.status==="Late"?"b-bad":r.status==="On Time"?"b-ok":"b-mut"}">${esc(r.status)}</span></td>
+      <td><span class="badge ${r.early==="Yes"?"b-bad":r.early==="No"?"b-ok":"b-mut"}">${esc(r.early)}</span></td>
+      <td>${esc(r.workStr)}</td>
+      <td>${esc(r.avgLess8)}</td>
+      <td>${esc(r.avgLess9)}</td>
+      <td>${esc(r.avgMore9)}</td>
+    </tr>`).join("");
 }
 
 /* ============ employee modal ============ */
@@ -642,9 +794,16 @@ function gvizToRows(t){
     if(v == null) return "";
     if(v instanceof Date){
       const pad=n=>String(n).padStart(2,"0");
-      // time-of-day cells come through as dates on the 1899 epoch
       if(v.getFullYear() <= 1900) return pad(v.getHours())+":"+pad(v.getMinutes());
       return v.getFullYear()+"-"+pad(v.getMonth()+1)+"-"+pad(v.getDate());
+    }
+    if(typeof v==="string"){
+      // gviz time cells arrive as "Date(1899,11,30,H,M,S)" strings
+      const m=v.match(/^Date\(\s*1899\s*,\s*11\s*,\s*30\s*,\s*(\d+)\s*,\s*(\d+)/);
+      if(m) return String(+m[1]).padStart(2,"0")+":"+String(+m[2]).padStart(2,"0");
+      const d=v.match(/^Date\(\s*(\d{4})\s*,\s*(\d+)\s*,\s*(\d+)/);
+      if(d) return `${d[1]}-${String(+d[2]+1).padStart(2,"0")}-${String(+d[3]).padStart(2,"0")}`;
+      return v;
     }
     return String(v);
   })));
@@ -676,8 +835,9 @@ function computeRows(raw){
     let hours=null;
     if(cin!=null&&cout!=null){ let m2=cout-cin; if(m2<0)m2+=1440; hours=Math.round(m2/60*100)/100; }
     const dow=r.date.getDay();
-    return {...r, dow, status, hours,
-      attended: cin!=null, weekday: dow!==4&&dow!==5, // Fri=4,Sat=5 excluded
+    const isWeekday = r.weekFlag==="Weekday" ? true : r.weekFlag==="Weekend" ? false : (dow!==4 && dow!==5);
+    return {...r, status, hours, dow,
+      attended: cin!=null, weekday: isWeekday, dow,
       late: status==="Late",
       below8: hours!=null&&hours<8,
       earlyOut: cout!=null&&cout<19*60 };
@@ -761,8 +921,8 @@ async function syncLive(){
   DATA.sailors=sailors; DATA.profiles=profiles;
   DATA.sailorManual=Object.keys(sailorManual).length?sailorManual:DATA.sailorManual;
   setPill("live","live");
-  selMonths=new Set([months[months.length-1]]); sailMonth=months[months.length-1];
-  refreshChips(); renderAtt(); renderSail(); renderOvrLog();
+  sailMonth=months[months.length-1];
+  refreshChipsSail(); refreshMatrix(); renderAtt(); renderSail(); renderOvrLog();
   $("#syncInfo").textContent=`Live · synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})} · ${months.length} month${months.length>1?"s":""}`;
   toast("Live sync complete — "+months.join(", "));
 }
@@ -779,7 +939,8 @@ function rowsToRecords(rows, month){
     const emp=g("Employee ID"); const date=parseDateJS(g("Date"));
     if(!emp||!date) continue;
     const cin=parseClockJS(g("Clock In")), cout=parseClockJS(g("Clock Out"));
-    recs.push({emp,name:g("Name"),perks:g("Perks")||"",team:g("Department/Team")||g("Department")||"",date,cin,cout});
+    const weekFlag = g("Weekdays");
+    recs.push({emp,name:g("Name"),perks:g("Perks")||"",team:g("Department/Team")||g("Department")||"",date,weekFlag,cin,cout});
   }
   return recs.length?recs:null;
 }
@@ -798,15 +959,15 @@ function parseSailorTab(rows){
 }
 
 /* ============ boot ============ */
-(function boot(){
-  const teams=[...new Set(Object.values(DATA.employees)[0].map(e=>e.team).filter(Boolean))].sort();
+(function boot(){ try{
+  const teams=[...new Set(Object.values(DATA.employees).flat().map(e=>e.team).filter(Boolean))].sort().filter((v,i,a)=>a.indexOf(v)===i);
   $("#teamSel").innerHTML+=teams.map(t=>`<option>${esc(t)}</option>`).join("");
-  refreshChips();
-  renderAtt();
+  refreshChipsSail();
+  refreshMatrix(); renderAtt();
   renderSail();
   renderOvrLog();
   save();
-  syncLive();
+  syncLive(); }catch(e){ console.error(e);}
 })();
 </script>
 </body>

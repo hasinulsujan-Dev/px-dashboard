@@ -50,24 +50,32 @@ A `Status` is derived for each row:
 - Weekends: **Friday & Saturday** are the official weekend.
 - Weekend rows are excluded from all attendance metrics (Absent, Late, <8h days, early check-out, averages). They remain visible in raw drill-downs.
 
-### 3.3 Per-employee monthly aggregates
+### 3.3 Per-employee/day columns — 14 sequential columns (left to right)
 
-Group by Employee ID (+ Name, Perks, Department/Team) per month. One row per employee per month:
+The daily attendance table for each month displays **all 14 columns** in exactly this order (no hidden columns; empty cells shown as —):
 
-| Metric | Definition |
-|---|---|
-| Days Attended | Count of rows with any Clock In present |
-| Days Late | Count of rows with Status = Late |
-| Days < 8 Hours | Count of attended days with Office Hours < 8h |
-| Early Check-Out Days | Count of attended days with Clock Out before 7:00 PM |
-| Avg Daily Hours (< 9h) | Average Office Hours across attended days where average falls below 9h — shown as Duration (hours) |
-| Avg Daily Hours (> 9h) | Average Office Hours across attended days where average exceeds 9h — shown as Duration (hours) |
+| # | Column | Description |
+|---|--------|-------------|
+| 1 | Employee ID | Unique key |
+| 2 | Name | Employee name |
+| 3 | Perks | e.g. Public Transport / Exavehicle / Exanest A4 |
+| 4 | Department/Team | e.g. bKash / Exabyting Office / Support Staff |
+| 5 | Date | YYYY-MM-DD |
+| 6 | Weekdays | Weekday / Weekend marker from the sheet |
+| 7 | Clock In | H:MM (or —) |
+| 8 | Clock Out | H:MM (or —) |
+| 9 | Status | **Late** (after 10:00), **On Time** (≤10:00), **Absent** (both blank) |
+| 10 | Early checkout? | **Yes** (Clock Out before 19:00) / **No** / — |
+| 11 | Work Time per day | Duration `HH:MM` per attended day (or —) |
+| 12 | Average Daily Office Hours (Less than 8 hours) | Column header stays only — populated at employee level in summary |
+| 13 | Average Daily Office Hours (Less than 9 hours) | Same as above |
+| 14 | Average Daily Office Hours (More than 9 hours) | Same as above |
 
-> Interpretation of lines 12–13 of the original PRD: the two "Average Daily Office Hours" columns show an employee's overall monthly average once — either under "< 9 hours" or "> 9 hours" depending on which side of 9h the average lands.
+All derived values (9–14) are computed by the dashboard per *3.1/3.2*; columns 12–14 exist for every month even when empty. The per-month view keeps the day-by-day rows (one row per person per day) — not a pre-aggregated summary — so filters (3.5) operate on the full action-level detail.
 
 ### 3.4 Month handling
 
-- Every month tab ("July Attendance 2026", …) gets its own table/view, one per month.
+- Attendance section is tabbed per month: **January through December**, one tab per month, each displaying its full daily table (Jan–Dec sequential; each tab shows its month's complete 14-column table described in 3.3). The month tabs are placed inside the Attendance section — no separate per-month table list outside it.
 - Any new month tab added to the sheet must automatically appear as a new month view with identical calculations.
 
 ### 3.5 Filters
