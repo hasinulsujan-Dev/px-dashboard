@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PX Team Dashboard</title>
+<title>PX Team Dashboard-2026</title>
 <style>
 :root{
   --bg:#0b0f17; --bg2:#101623; --card:#141b2b; --card2:#1a2236; --line:#232d44;
@@ -36,6 +36,14 @@ header.top{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--b
 .spacer{flex:1}
 .theme-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;color:var(--mut)}
 .theme-btn:hover{color:var(--txt);border-color:var(--acc)}
+.theme-toggle{display:inline-flex;align-items:center;gap:8px;height:32px;padding:4px 10px;border:1px solid var(--line);border-radius:20px;background:var(--card2);color:var(--mut);font-weight:700;font-size:11px;letter-spacing:0.04em;text-transform:uppercase}
+.theme-toggle .track{width:32px;height:18px;border-radius:999px;background:var(--line);position:relative;display:inline-block;flex:0 0 32px}
+.theme-toggle .thumb{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--txt);box-shadow:0 1px 6px rgba(0,0,0,0.3);transition:transform .2s ease, background .2s ease}
+body.light .theme-toggle .thumb{transform:translateX(14px);background:var(--acc)}
+.theme-toggle .label .on{display:none}
+body:not(.light) .theme-toggle .label .on{display:inline}
+body:not(.light) .theme-toggle .label .off{display:none}
+body.light .theme-toggle .label .off{display:inline}
 
 nav.tabs{border-bottom:1px solid var(--line);background:var(--bg2)}
 .tabs-in{max-width:1280px;margin:0 auto;padding:0 24px;display:flex;gap:4px}
@@ -161,7 +169,38 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 .p-sync{background:var(--infobg)!important;color:var(--info)!important}
 @keyframes pulse{50%{opacity:.4}}
 .p-sync{animation:pulse 1.1s infinite}
-@media(max-width:720px){.top-in{padding:12px 14px}.tabs-in{padding:0 8px;overflow-x:auto}main{padding:18px 14px 60px}}
+@media(max-width:720px){.top-in{padding:12px 14px}.tabs-in{padding:0 8px;overflow-x:auto}main{padding:18px 14px 60px}
+  .layout{grid-template-columns:1fr}
+  .sidebar{display:none}
+}
+
+
+/* multi-select teams */
+.team-ms{position:relative;display:inline-block}
+.team-ms .ms-btn{height:36px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--mut);font-weight:600;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.team-ms.open .ms-btn{border-color:var(--acc);color:var(--txt)}
+.team-ms .ms-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:220px;max-height:280px;overflow:auto;padding:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);display:none;z-index:20}
+.team-ms.open .ms-menu{display:block}
+.team-ms .ms-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;color:var(--txt);cursor:pointer}
+.team-ms .ms-item:hover{background:var(--card2)}
+.team-ms .ms-item input{accent-color:var(--acc)}
+.team-ms .ms-foot{display:flex;gap:8px;padding:8px 4px 4px;border-top:1px solid var(--line);margin-top:6px}
+.team-ms .ms-foot .btn{height:28px;padding:0 10px;font-size:11px}
+
+/* ---------- sidebar (year pages) ---------- */
+.layout{display:grid;grid-template-columns:220px 1fr;gap:0;max-width:1500px;margin:0 auto}
+.sidebar{position:sticky;top:53px;align-self:start;height:calc(100vh - 53px);padding:18px 14px;border-right:1px solid var(--line);background:color-mix(in srgb,var(--bg) 94%,transparent);overflow-y:auto}
+.sidebar h2{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--mut);font-weight:700;margin:0 0 10px 6px}
+.years{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.years a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid transparent;color:var(--mut);font-weight:700;font-size:13px;text-decoration:none;transition:border .15s,background .15s,color .15s}
+.years a .dot{width:7px;height:7px;border-radius:50%;background:var(--mut);opacity:0.9}
+.years a:hover{border-color:var(--line);background:var(--card2);color:var(--txt)}
+.years a.active{background:var(--card);border-color:var(--acc);color:var(--txt);box-shadow:var(--shadow)}
+.years a.active .dot{background:var(--acc)}
+.years a.stub{opacity:0.9}
+.years a.stub .badge{margin-left:auto;font-size:10px;padding:1px 6px}
+.foot-note{margin-top:18px;font-size:11px;color:var(--dim);line-height:1.5;padding:0 6px}
+@media(max-width:900px){ .layout{grid-template-columns:1fr} .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)} }
 </style>
 </head>
 <body>
@@ -170,13 +209,16 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <div class="top-in">
     <div class="logo">PX</div>
     <div class="brand">
-      <h1>PX Team Dashboard</h1>
-      <p id="syncInfo">Attendance &amp; Sailor's Report · 2026</p>
+      <h1 id="dashTitle">PX Team Dashboard-2026</h1>
+      <p id="syncInfo">Attendance &amp; Sailor's Report · Jan-2026 … Dec-2026</p>
     </div>
     <div class="spacer"></div>
     <span class="badge b-mut" id="syncPill" title="Live sync status">● snapshot</span>
     <button class="btn" onclick="exportAll()">↓ Export</button>
-    <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">◐</button>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Switch theme" aria-label="Switch between Light and Dark mode">
+      <span class="track"><span class="thumb"></span></span>
+      <span class="label"><span class="on">Dark</span><span class="off">Light</span></span>
+    </button>
   </div>
   <nav class="tabs"><div class="tabs-in">
     <button class="tab on" data-v="att">▦ Attendance</button>
@@ -185,9 +227,22 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   </div></nav>
 </header>
 
+<div class="layout">
+<aside class="sidebar" aria-label="Year pages">
+  <h2>Year</h2>
+  <nav class="years">
+    <a id="year2026" class="active" href="?year=2026" aria-current="page"><span class="dot"></span> PX Team Dashboard-2026</a>
+    <a id="year2027" class="stub" href="?year=2027"><span class="dot"></span> PX Team Dashboard-2027 <span class="badge b-mut">stub</span></a>
+  </nav>
+  <p class="foot-note">2026 is live from <em>Sample of Attendance-2026</em>. 2027 is a separate page (Phase 2, empty shell for now).</p>
+  <div id="yearStubBanner" style="display:none;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card2);font-size:12px;color:var(--mut);line-height:1.5">PX Team Dashboard-2027 is not yet live. This is an empty 14-col shell (no 2026 data fetched). Coming next phase.</div>
+</aside>
+
 <main>
 <!-- ================= ATTENDANCE ================= -->
 <section class="view on" id="view-att">
+  <div class="kpis" id="kpis"></div>
+
   <div class="toolbar">
     <select id="attMonthSel" onchange="renderAtt()" style="height:36px">
       <option value="January">January</option>
@@ -207,22 +262,17 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="q" placeholder="Search name / ID…" oninput="renderAtt()">
     </label>
-    <select id="teamSel" onchange="renderAtt()" style="height:36px"><option value="">All teams</option></select>
+    <div class="team-ms" id="teamMs"><button class="ms-btn" id="teamMsBtn" onclick="toggleTeamMs()">All teams ▾</button><div class="ms-menu" id="teamMsMenu"></div></div>
     <select id="statusSel" onchange="renderAtt()" style="height:36px">
       <option value="">All Status</option><option value="On Time">On Time</option><option value="Late">Late</option><option value="Absent">Absent</option>
     </select>
-    <select id="weekdaySel" onchange="renderAtt()" style="height:36px">
-      <option value="">Weekday / Weekend</option><option value="Weekday">Weekday</option><option value="Weekend">Weekend</option>
-    </select>
-    <label class="tgl"><input type="checkbox" id="onsiteTgl" onchange="renderAtt()" checked> Onsite only</label>
+    <label class="tgl"><input type="checkbox" id="onsiteTgl" onchange="renderAtt()"> Onsite only</label>
   </div>
-
-  <div class="kpis" id="kpis"></div>
 
   <div class="panel" id="summaryPanel" style="margin-bottom:18px">
     <div class="panel-h">
       <h3>Summary — <span id="summaryMonthLabel">January</span></h3>
-      <span class="hint">per Employee ID · click a summary row to filter the daily table</span>
+      <span class="hint">per Employee ID · unique attendees <b id="uniqueBadge">—</b> · click a row to filter the daily table</span>
       <div class="spacer"></div>
       <span class="hint" id="summaryHint"></span>
     </div>
@@ -312,7 +362,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </section>
 </main>
 
-<footer>PX Team Dashboard · v1 · Data: Sample of Attendance-2026 &amp; Sailor's Report-2026 with Sample Data · Weekends: Fri &amp; Sat</footer>
+<footer>PX Team Dashboard-2026 · v1 · Data: Sample of Attendance-2026 &amp; Sailor's Report-2026 with Sample Data · Weekends: Fri &amp; Sat</footer>
 
 <div class="overlay" id="ovl" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modalBox"></div>
@@ -323,13 +373,53 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 const DATA = /*DATA_PLACEHOLDER*/null;
 
 /* ============ state ============ */
+const YEAR = new URLSearchParams(location.search).get("year") || "2026";
+const shortYearLabel = m => m.slice(0,3) + "-" + YEAR;
+const dashLabel = "PX Team Dashboard-" + YEAR;
 const LS_KEY = "pxdash-overrides-v1";
 let OVR = load();
 function load(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{att:{},sail:{}}}catch(e){return{att:{},sail:{}}} }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(OVR)); document.getElementById("ovrCount").textContent = ovrTotal(); }
 function ovrTotal(){ return Object.keys(OVR.att).length + Object.keys(OVR.sail).length; }
 
+
+let teamSelection = new Set(); // empty = All
+function teamMsLabel(){
+  if(teamSelection.size===0) return "All teams";
+  if(teamSelection.size===1) return [...teamSelection][0];
+  return teamSelection.size + " teams";
+}
+function toggleTeamMs(){ document.getElementById("teamMs").classList.toggle("open"); }
+function closeTeamMs(){ const el=document.getElementById("teamMs"); if(el) el.classList.remove("open"); }
+document.addEventListener('click', e=>{
+  const ms=document.getElementById("teamMs");
+  if(!ms) return;
+  if(!ms.contains(e.target)) ms.classList.remove("open");
+});
+function buildTeamMs(){
+  const menu=document.getElementById("teamMsMenu"); const btn=document.getElementById("teamMsBtn");
+  if(!menu||!btn) return;
+  const teams=[...new Set(Object.values(DATA.employees).flat().map(e=>e.team).filter(Boolean).filter(team=>!/^support staff$/i.test(team)))].sort().filter((v,i,a)=>a.indexOf(v)===i);
+  // Also include any from roster
+  for(const prof of Object.values(DATA.profiles||{})){ if(prof.team && !/^support staff$/i.test(prof.team) && !teams.includes(prof.team)) teams.push(prof.team); }
+  teams.sort();
+  menu.innerHTML = teams.map(team=>`
+    <label class="ms-item"><input type="checkbox" value="${team.replace(/"/g,'&quot;')}" ${teamSelection.has(team)?'checked':''} onchange="onTeamCheck(this)"> ${team}</label>
+  `).join("") + `<div class="ms-foot"><button class="btn" onclick="clearTeamMs()">Clear</button><button class="btn pri" onclick="closeTeamMs(); renderAtt();">Apply</button></div>`;
+  btn.textContent = teamMsLabel() + " ▾";
+}
+function onTeamCheck(el){
+  if(el.checked) teamSelection.add(el.value);
+  else teamSelection.delete(el.value);
+  document.getElementById("teamMsBtn").textContent = teamMsLabel() + " ▾";
+  renderAtt();
+}
+function clearTeamMs(){ teamSelection.clear(); buildTeamMs(); renderAtt(); }
+
 let sailMonth = DATA.months[DATA.months.length-1];
+// Dynamic year titles (overrides static template)
+document.title = dashLabel;
+const _dt=document.getElementById("dashTitle"); if(_dt) _dt.textContent=dashLabel;
 let sortKey = "name", sortDir = 1;
 let summarySort = "name", summaryDir = 1;
 let activeSummaryId = null;
@@ -381,6 +471,19 @@ function initChips(elId, setter){
   el.innerHTML = DATA.months.map(m=>`<button class="chip ${sailMonth===m?"on":""}" data-m="${m}">${m.slice(0,3)}</button>`).join("");
   el.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{ sailMonth=c.dataset.m; setter(); });
 }
+function applyYearChrome(){
+  const y=YEAR;
+  const a26=document.getElementById("year2026"), a27=document.getElementById("year2027"), banner=document.getElementById("yearStubBanner");
+  if(a26) a26.classList.toggle("active", y==="2026");
+  if(a27) a27.classList.toggle("active", y==="2027");
+  if(a26) a26.setAttribute("aria-current", y==="2026"?"page":"false");
+  if(a27) a27.setAttribute("aria-current", y==="2027"?"page":"false");
+  if(banner) banner.style.display = (y==="2027" ? "block" : "none");
+  // Update header syncInfo year range and footer year
+  const si=document.getElementById("syncInfo"); if(si) si.textContent="Attendance & Sailor's Report · Jan-"+y+" … Dec-"+y;
+  const foot=document.querySelector("footer"); if(foot) foot.textContent=foot.textContent.replace(/PX Team Dashboard[^·]*·/, dashLabel+" ·");
+}
+function populateMonthSelect(){ const sel=document.getElementById("attMonthSel"); if(!sel) return; [...sel.options].forEach(o=>o.textContent=shortYearLabel(o.value)); }
 function refreshChipsSail(){ initChips("sailChips", ()=>{ refreshChipsSail(); renderSail(); }); }
 
 const ALL_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -399,10 +502,35 @@ function refreshMatrix(){ MATRIX=buildMatrix(); }
 
 function renderSummary(){
   const mSel = document.getElementById("attMonthSel").value || "January";
-  document.getElementById("summaryMonthLabel").textContent = mSel;
-  const idx = MATRIX.idx.get(mSel);
+  document.getElementById("summaryMonthLabel").textContent = shortYearLabel(mSel);
+  const q=document.getElementById('q')?.value.trim().toLowerCase() || "";
+  const statusF=document.getElementById('statusSel')?.value || "";
+  const isOn = document.getElementById('onsiteTgl')?.checked || false;
+  const teamSet = (typeof teamSelection!=="undefined") ? teamSelection : new Set();
+  const statusPass = r => !statusF || r.aStatus===statusF || r.status===statusF; // tolerate computed status field names
+  const qPass = (id,name) => !q || name.toLowerCase().includes(q) || id.toLowerCase().includes(q);
+  const teamPass = t => !teamSet.size || teamSet.has(t);
+  const onsitePass = r => !isOn || isOnsite({perks:r.perks||"",team:r.team||""});
+  const idx0 = MATRIX.idx.get(mSel);
+  if(!idx0){ document.querySelector("#summaryTbl tbody").innerHTML=`<tr><td colspan="10" class="empty-state">No data for ${mSel}</td></tr>`; document.getElementById("summaryHint").textContent=""; return; }
+  // Build filtered employee list: keep only those whose status/attendance survives the active filters at least once in daily
+  const dailyFilteredIds = new Set();
+  (DATA.daily[mSel]||[]).forEach(d=>{
+    const emp=d[0], status=d[4];
+    if(statusF && status!==statusF) return;
+    const prof=DATA.profiles?.[emp]||{};
+    const teamV=prof.team||(MATRIX.idx.get(mSel)?.get(emp)?.team)||"";
+    if(!teamPass(teamV)) return;
+    const perksV=prof.perks||(MATRIX.idx.get(mSel)?.get(emp)?.perks)||"";
+    if(!onsitePass({perks:perksV,team:teamV})) return;
+    const nameV=prof.name||(MATRIX.roster.get(emp)?.name)||"";
+    if(!qPass(emp,nameV)) return;
+    dailyFilteredIds.add(emp);
+  });
+  const idxFiltered = dailyFilteredIds.size ? new Map([...idx0.entries()].filter(([id])=>dailyFilteredIds.has(id))) : idx0;
+  const idx = idxFiltered;
   if(!idx){ document.querySelector("#summaryTbl tbody").innerHTML=`<tr><td colspan="10" class="empty-state">No data for ${mSel}</td></tr>`; document.getElementById("summaryHint").textContent=""; return; }
-  const entries = [...idx.entries()].map(([id,r])=>({id, r, p: MATRIX.roster.get(id)}));
+  const entries = [...idx.entries()].filter(([id,r])=>!/^support staff$/i.test(r.team||"") && !/^support staff$/i.test(MATRIX.roster.get(id)?.team||"")).map(([id,r])=>({id, r, p: MATRIX.roster.get(id)}));
   const dir = summaryDir;
   entries.sort((a,b)=>{
     let va, vb;
@@ -429,7 +557,10 @@ function renderSummary(){
     if(!arr){ th.innerHTML += ' <span class="arr"></span>'; arr=th.querySelector(".arr"); }
     arr.textContent = th.dataset.k===summarySort ? (summaryDir>0?"↑":"↓") : "";
   });
-  document.getElementById("summaryHint").textContent = entries.length + " employees";
+  const uniqueAtt = entries.filter(x=>x.r.att>0).length;
+  document.getElementById("summaryHint").innerHTML = `${entries.length} employees · <b>${uniqueAtt}</b> unique attendees`;
+  const badge=document.getElementById("uniqueBadge"); if(badge) badge.textContent = uniqueAtt;
+  document.getElementById("summaryHint").title = `${uniqueAtt} attended at least one day in ${shortYearLabel(mSel)}`;
   const tb=document.querySelector("#summaryTbl tbody");
   tb.innerHTML = entries.map(({id,r,p})=>{
     const onTime = r.att - r.late;
@@ -468,12 +599,10 @@ function attDailyFor(month){
 }
 function renderAtt(){
   const mSel = document.getElementById("attMonthSel").value || "January";
-  document.getElementById("attMonthLabel").textContent = mSel;
+  document.getElementById("attMonthLabel").textContent = shortYearLabel(mSel);
   renderSummary();
   const q=$("#q").value.trim().toLowerCase();
-  const team=$("#teamSel").value;
   const statusF=$("#statusSel").value;
-  const wdF=$("#weekdaySel").value;
   const onsite=$("#onsiteTgl").checked;
   // Build daily rows for this month from live daily + supplement with profile
   const profMap = DATA.profiles || {};
@@ -505,12 +634,12 @@ function renderAtt(){
     const avgMore9 = agg && agg.avg!=null && agg.avg>9 ? agg.avg.toFixed(2)+"h" : "—";
     rows.push({emp,name:nameV,perks:perksV,team:teamV,date:dateStr,weekFlag:dowLabel,cin,cout,status,early,workStr,avgLess8,avgLess9,avgMore9,agg});
   }
-  // Filters
+  // Filters — Support Staff excluded for Monthly Attendance & Summary for all months
   rows = rows.filter(r=>{
+    if(/^support staff$/i.test(r.team||"")) return false;
     if(onsite && !isOnsite({perks:r.perks,team:r.team})) return false;
-    if(team && r.team!==team) return false;
+    if(teamSelection.size && !teamSelection.has(r.team)) return false;
     if(statusF && r.status!==statusF) return false;
-    if(wdF && r.weekFlag!==wdF) return false;
     if(q && !(r.name.toLowerCase().includes(q)||r.emp.toLowerCase().includes(q))) return false;
     return true;
   });
@@ -541,13 +670,15 @@ function renderAtt(){
     if(typeof va==="string") return va.localeCompare(String(vb))*dir;
     return (va - vb)*dir;
   });
-  // KPIs for this month
+  // KPIs for this month — unique-person math; update across all months as filters change
   const flat = rows;
-  const n=new Set(rows.map(r=>r.emp)).size;
+  const distinct = new Set(rows.map(r=>r.emp)).size;
+  // Unique attendees: employees with att>0 this month (per Employee ID)
+  const attEmps = new Set(rows.filter(r=>r.cin!=null).map(r=>r.emp));
+  const uniqueAtt = attEmps.size;
   const wdCount = rows.filter(r=>r.weekFlag==="Weekday").length;
-  const attCount = rows.filter(r=>r.cin!=null).length;
-  $("#kpis").innerHTML=[["Employees",n,"distinct in month","var(--acc)","rgba(91,140,255,.12)","👥"],["Weekdays",wdCount,"Weekday rows","var(--ok)","var(--okbg)","✓"],["Attended",attCount,"clock-in present","var(--warn)","var(--warnbg)","⏰"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
-  $("#tblHint").textContent = n + " employees · " + rows.length + " rows · " + mSel + " 2026";
+  $("#kpis").innerHTML=[["Employees",`${distinct} <span style="font-size:12px;color:var(--mut)">(unique: ${uniqueAtt} attended)</span>`,"distinct Employee IDs in month","var(--acc)","rgba(91,140,255,.12)","👥"],["Weekdays",wdCount,"Weekday rows","var(--ok)","var(--okbg)","✓"],["Attended rows",rows.filter(r=>r.cin!=null).length,"daily rows with clock-in","var(--warn)","var(--warnbg)","⏰"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
+  $("#tblHint").textContent = distinct + " employees · " + rows.length + " rows · " + shortYearLabel(mSel);
   if(!rows.length){ tb.innerHTML=`<tr><td colspan="14" class="empty-state">No rows for ${mSel} with current filters</td></tr>`; return; }
   tb.innerHTML = rows.map(r=>`
     <tr onclick="openEmp('${esc(r.emp)}','${mSel}')">
@@ -663,7 +794,7 @@ function entryHot(idx,v){
   }
 }
 function renderSail(){
-  $("#sailMonthLbl").textContent = sailMonth+" 2026";
+  $("#sailMonthLbl").textContent = shortYearLabel(sailMonth);
   const q=$("#sailQ").value.trim().toLowerCase();
   const flagOnly=$("#flagOnly").checked;
   const rows=effSail(sailMonth);
@@ -757,7 +888,7 @@ function dl(name,content,type){
 function exportAll(){
   const head="Month,Employee ID,Name,Team,Perks,Weekdays,Days Attended,Absent,Late Days,<8h Days,Early Checkouts,Avg Daily Hours,Band\n";
   const body=DATA.months.flatMap(m=>effRows(m).map(r=>[m,r.id,r.name,r.team,r.perks,r.wd,r.att,r.absent,r.late,r.b8,r.eco,r.avg??"",r.band].map(x=>`"${x}"`).join(","))).join("\n");
-  dl("px-dashboard-attendance.csv",head+body,"text/csv");
+  dl("px-dashboard-attendance-"+YEAR+".csv",head+body,"text/csv");
   toast("CSV exported");
 }
 
@@ -922,7 +1053,7 @@ async function syncLive(){
   DATA.sailorManual=Object.keys(sailorManual).length?sailorManual:DATA.sailorManual;
   setPill("live","live");
   sailMonth=months[months.length-1];
-  refreshChipsSail(); refreshMatrix(); renderAtt(); renderSail(); renderOvrLog();
+  buildTeamMs(); populateMonthSelect(); refreshChipsSail(); refreshMatrix(); renderAtt(); renderSail(); renderOvrLog();
   $("#syncInfo").textContent=`Live · synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})} · ${months.length} month${months.length>1?"s":""}`;
   toast("Live sync complete — "+months.join(", "));
 }
@@ -933,16 +1064,29 @@ function rowsToRecords(rows, month){
     if(cells.includes("Employee ID")&&cells.includes("Name")){ hi=i; cols={}; cells.forEach((n,ix)=>{ if(n&&!(n in cols))cols[n]=ix; }); break; }
   }
   if(hi<0) return null;
+  // January guard: Date label is blank in gviz; recover by position (col 3). Also Clock cols may be blank-labeled in older months.
+  const dateIx = cols["Date"] ?? 3;
+  const clockInIx = cols["Clock In"] ?? cols["Clock In "] ?? (dateIx!=null ? dateIx+2 : null);
+  const clockOutIx = cols["Clock Out"] ?? cols["Clock Out "] ?? (dateIx!=null ? dateIx+3 : null);
   const recs=[];
   for(let i=hi+1;i<rows.length;i++){
-    const r=rows[i], g=n=>{const ix=cols[n];return ix!=null&&ix<r.length?(r[ix]||"").trim():"";};
+    const r=rows[i];
+    const g=n=>{
+      if(n==="Date"){ const v=r[dateIx]; return v!=null?String(v).trim():""; }
+      if(n==="Clock In"){ const ix=clockInIx; return ix!=null&&ix<r.length ? String(r[ix]||"").trim() : ""; }
+      if(n==="Clock Out"){ const ix=clockOutIx; return ix!=null&&ix<r.length ? String(r[ix]||"").trim() : ""; }
+      const ix=cols[n]; return ix!=null&&ix<r.length?(r[ix]||"").trim():"";
+    };
     const emp=g("Employee ID"); const date=parseDateJS(g("Date"));
     if(!emp||!date) continue;
+    if(date.getFullYear()!==2026) continue;
     const cin=parseClockJS(g("Clock In")), cout=parseClockJS(g("Clock Out"));
     const weekFlag = g("Weekdays");
     recs.push({emp,name:g("Name"),perks:g("Perks")||"",team:g("Department/Team")||g("Department")||"",date,weekFlag,cin,cout});
   }
-  return recs.length?recs:null;
+  // Empty months (e.g. Aug–Dec stubs filled with 2025 data) should render as no data
+  if(!recs.length) return null;
+  return recs;
 }
 function parseSailorTab(rows){
   let start=-1;
@@ -960,9 +1104,21 @@ function parseSailorTab(rows){
 
 /* ============ boot ============ */
 (function boot(){ try{
-  const teams=[...new Set(Object.values(DATA.employees).flat().map(e=>e.team).filter(Boolean))].sort().filter((v,i,a)=>a.indexOf(v)===i);
-  $("#teamSel").innerHTML+=teams.map(t=>`<option>${esc(t)}</option>`).join("");
-  refreshChipsSail();
+  applyYearChrome();
+  if(YEAR==="2027"){
+    // 2027 stub: no 2026 data fetch, render empty 14-col shells
+    const teams=[...new Set(Object.values(DATA.employees).flat().map(e=>e.team).filter(Boolean).filter(team=>!/^support staff$/i.test(team)))].sort().filter((v,i,a)=>a.indexOf(v)===i);
+    refreshChipsSail();
+    // build empty matrix for 2027 (all months empty) so Summary/Attendance render their empty states with Jan-2027 labels
+    MATRIX={ms:[],roster:new Map(),idx:new Map()}; ALL_MONTHS.forEach(m=>MATRIX.idx.set(m,new Map()));
+    DATA.months=[]; DATA.daily={};
+    const pill=document.getElementById("syncPill"); if(pill){ pill.className="badge b-mut"; pill.textContent="● 2027 stub"; }
+    const si2=document.getElementById("syncInfo"); if(si2) si2.textContent="PX Team Dashboard-2027 · Coming next phase — no data yet";
+    renderAtt(); renderSail(); renderOvrLog(); save();
+    return;
+  }
+  populateMonthSelect(); refreshChipsSail();
+  buildTeamMs();
   refreshMatrix(); renderAtt();
   renderSail();
   renderOvrLog();

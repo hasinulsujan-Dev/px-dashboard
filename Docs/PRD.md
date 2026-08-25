@@ -1,12 +1,15 @@
-# PX Team Dashboard — Product Requirements Document
+# PX Team Dashboard-2026 — Product Requirements Document
+
+> **Conventions — YEAR** · Every user-facing label includes the year suffix **`-YYYY`** (e.g. `Jan-2026`). The sidebar hosts **PX Team Dashboard-2026** (current page, live data from the 2026 sheets) and **PX Team Dashboard-2027** right below it (next-phase stub, separate `?year=2027` page; Phase 2 will source its data from `Sample of Attendance-2027` / `Sailor's Report-2027` sheets).
 
 ## 1. Overview
 
-A team dashboard titled **"PX Team Dashboard"** with separate areas for different data and reports:
+A team dashboard titled **"PX Team Dashboard-2026"** (2026 scope; 2027 will live on its own **`PX Team Dashboard-2027`** page next phase) with separate areas for different data and reports:
 
-- **Section 1 — Attendance Report**: monthly per-employee attendance metrics computed from Google Sheet *"Sample of Attendance-2026"* (https://docs.google.com/spreadsheets/d/1i5NrueAeZLEE4blFuX6D5Hdb6wAVuomI8zxYKLnpC5Y/edit?gid=782354685#gid=782354685)
-- **Section 2 — Sailor's Report**: monthly compliance report following the criteria defined in Google Sheet *"Sailor's Report-2026 with Sample Data"* (https://docs.google.com/spreadsheets/d/1ItMz3DMVH9U2GkY5j_XOLssonrkO-VoQhqVUN49fWPU/edit?gid=1979001742#gid=1979001742)
-- **Manual Data Entry**: both reports fully editable from within the dashboard, in case manual correction or input is needed.
+- **Section 1 — Attendance Report**: monthly metrics for **2026** computed from Google Sheet *"Sample of Attendance-2026"* (https://docs.google.com/spreadsheets/d/1i5NrueAeZLEE4blFuX6D5Hdb6wAVuomI8zxYKLnpC5Y/edit?gid=782354685#gid=782354685) — year page **PX Team Dashboard-2026**.
+- **Section 2 — Sailor's Report**: monthly compliance report for **2026** following the criteria defined in Google Sheet *"Sailor's Report-2026 with Sample Data"* (https://docs.google.com/spreadsheets/d/1ItMz3DMVH9U2GkY5j_XOLssonrkO-VoQhqVUN49fWPU/edit?gid=1979001742#gid=1979001742) — same `-2026` year scope.
+- **Manual Data Entry**: both reports fully editable from within the dashboard (scoped to the `-2026` data for this phase).
+- **Year pages**: sidebar hosts **PX Team Dashboard-2026** (current, active) and **PX Team Dashboard-2027** (stub, Phase 2). Switching years changes the title/header to the matching `-YYYY` and, in Phase 2, will switch the backing sheets to the 2027 variants.
 
 ## 2. Data Sources
 
@@ -52,7 +55,7 @@ A `Status` is derived for each row:
 
 ### 3.3 Per-employee/day columns — 14 sequential columns (left to right)
 
-The daily attendance table for each month displays **all 14 columns** in exactly this order (no hidden columns; empty cells shown as —):
+The daily attendance table for each month displays **all 14 columns** in exactly this order (no hidden columns; empty cells shown as —). Month labels in the filter and panel headers render as **short-form `Mon-YYYY`** (e.g. `Jan-2026` … `Dec-2026`) for the `PX Team Dashboard-2026` year page; canonical month keys remain `January` … `December` for sheet/tab logic (`MONTH_GVIZ`, `DATA.daily`, `MATRIX`).
 
 | # | Column | Description |
 |---|--------|-------------|
@@ -75,7 +78,7 @@ All derived values (9–14) are computed by the dashboard per *3.1/3.2*; columns
 
 ### 3.4 Month handling
 
-- Attendance section is tabbed per month: **January through December**, one tab per month, each displaying its full daily table (Jan–Dec sequential; each tab shows its month's complete 14-column table described in 3.3). The month tabs are placed inside the Attendance section — no separate per-month table list outside it.
+- Attendance section is tabbed per month: **January through December**, one tab per month, each displaying its full daily table (Jan–Dec sequential; each tab shows its month's complete 14-column table described in 3.3) **labeled as `Jan-2026` … `Dec-2026` in the `PX Team Dashboard-2026` page's filter**. The month tabs are placed inside the Attendance section — no separate per-month table list outside it.
 - Any new month tab added to the sheet must automatically appear as a new month view with identical calculations.
 
 ### 3.5 Filters
