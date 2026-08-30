@@ -676,8 +676,14 @@ function renderAtt(){
   // Unique attendees: employees with att>0 this month (per Employee ID)
   const attEmps = new Set(rows.filter(r=>r.cin!=null).map(r=>r.emp));
   const uniqueAtt = attEmps.size;
-  const wdCount = rows.filter(r=>r.weekFlag==="Weekday").length;
-  $("#kpis").innerHTML=[["Employees",`${distinct} <span style="font-size:12px;color:var(--mut)">(unique: ${uniqueAtt} attended)</span>`,"distinct Employee IDs in month","var(--acc)","rgba(91,140,255,.12)","👥"],["Weekdays",wdCount,"Weekday rows","var(--ok)","var(--okbg)","✓"],["Attended rows",rows.filter(r=>r.cin!=null).length,"daily rows with clock-in","var(--warn)","var(--warnbg)","⏰"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
+  // Calendar working days for this month (Fri & Sat excluded) — not per-employee
+  const ym = mSel;
+  const monthIdx = ["January","February","March","April","May","June","July","August","September","October","November","December"].indexOf(ym);
+  const daysInMonth = new Date(2026, monthIdx+1, 0).getDate();
+  let wdCount = 0;
+  for(let d=1; d<=daysInMonth; d++){ const dow=new Date(2026, monthIdx, d).getDay(); if(dow!==5 && dow!==6) wdCount++; }
+  const rosterCount = [...MATRIX.roster.keys()].filter(id=>!/^support staff$/i.test(MATRIX.roster.get(id)?.team||"") && !/^support staff$/i.test(MATRIX.idx.get(mSel)?.get(id)?.team||"")).length;
+  $("#kpis").innerHTML=[["Total Employees",`${rosterCount}`,"unique roster head count (ex Support Staff)","var(--acc)","rgba(91,140,255,.12)","👥"],["Weekdays",wdCount,"calendar working days (Fri–Sat as weekends)","var(--ok)","var(--okbg)","✓"],["Attendance",uniqueAtt,"unique attendees in month","var(--warn)","var(--warnbg)","⏰"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
   $("#tblHint").textContent = distinct + " employees · " + rows.length + " rows · " + shortYearLabel(mSel);
   if(!rows.length){ tb.innerHTML=`<tr><td colspan="14" class="empty-state">No rows for ${mSel} with current filters</td></tr>`; return; }
   tb.innerHTML = rows.map(r=>`
