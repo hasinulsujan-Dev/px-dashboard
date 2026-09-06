@@ -978,7 +978,7 @@ function computeRows(raw){
     let hours=null;
     if(cin!=null&&cout!=null){ let m2=cout-cin; if(m2<0)m2+=1440; hours=Math.round(m2/60*100)/100; }
     const dow=r.date.getDay();
-    const isWeekday = r.weekFlag==="Weekday" ? true : r.weekFlag==="Weekend" ? false : (dow!==4 && dow!==5);
+    const isWeekday = r.weekFlag==="Weekday" ? true : r.weekFlag==="Weekend" ? false : (dow!==5 && dow!==6);
     return {...r, status, hours, dow,
       attended: cin!=null, weekday: isWeekday, dow,
       late: status==="Late",
