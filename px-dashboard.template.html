@@ -329,7 +329,9 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <div class="panel">
     <div class="panel-h">
       <h3>Sailor's Report — Criteria <span id="sailCritMonthLbl">Jun-2026</span></h3>
-      <span class="hint">criteria across the top (hover a header for full text) · employees down the side · Late Check-in, Partial Attendance &amp; Early Check Out calculated from Attendance Summary · other criteria to follow</span>
+      <span class="hint">criteria titles are fixed defaults (not synced from the sheet) · employees down the side · Late Check-in, Partial Attendance, Early Check Out, Avg &lt;9h &amp; Avg &gt;9h calculated live from Attendance Summary · other criteria to follow</span>
+      <div class="spacer"></div>
+      <button class="btn" onclick="openCriteriaEditor()">✎ Edit Criteria</button>
     </div>
     <div class="tblwrap">
       <table id="sailCritTbl">
@@ -787,7 +789,7 @@ function renderOvrLog(){
 }
 function resetOverrides(){
   if(!confirm("Remove ALL manual edits and restore sheet values?"))return;
-  OVR={att:{},sail:{}}; save(); renderAtt(); renderSailorCriteria(); renderOvrLog(); toast("All manual edits cleared");
+  OVR={att:{},sail:{},sailorCriteria:null}; save(); renderAtt(); renderSailorCriteria(); renderOvrLog(); toast("All manual edits cleared");
 }
 
 /* ============ export ============ */
@@ -984,7 +986,6 @@ async function syncLiveRun(){
     const [label, rows] = entry;
     const parsed=parseSailorTab(rows);
     if(parsed){ sailorManual[label]=parsed.manual; if(parsed.criteria.length) DATA.sailorCriteria=parsed.criteria; }
-    if(label==="June") DATA.sailorCriteriaOnly=buildSailorCriteriaOnly(rows);
   }
   DATA.months=months; DATA.employees=employees; DATA.daily=daily;
   DATA.sailors=sailors; DATA.profiles=profiles;
@@ -1044,20 +1045,33 @@ function parseSailorTab(rows){
   return {criteria:crit, manual};
 }
 
-/* ============ sailor's report — criteria list (Column A only, sheet order) ============ */
-function buildSailorCriteriaOnly(rows){
-  if(!rows || rows.length<2) return [];
-  let start=-1;
-  for(let i=0;i<3;i++){ if(rows[i]&&["Criteria","Name"].includes((rows[i][0]||"").trim())){ start=i+1; break; } }
-  if(start<0) return [];
-  const out=[]; let no=0;
-  for(let i=start;i<rows.length;i++){
-    const criteria=(rows[i][0]||"").trim();
-    if(!criteria) continue;
-    no++;
-    out.push({no, criteria});
-  }
-  return out;
+/* ============ sailor's report — criteria (fixed default list, editable) ============ */
+const SAILOR_CRITERIA_DEFAULT = [
+  {key:null, criteria:"Enjoyed Late / Unrequested Meal  (>3 times )"},
+  {key:null, criteria:"Double lunch booking (bKash & Exabyting)"},
+  {key:"late", criteria:"Late Check in Count (> 3 times) (Only onsite employees)"},
+  {key:"partial", criteria:"Partial Attendance Count ( > 3 times) (<8 hours) (Only onsite employees)"},
+  {key:"early", criteria:"Early Check Out ( > 3 times) (Only onsite employees)"},
+  {key:"avg_lt9", criteria:"Average Daily Office Hours (Only onsite employees) (Only < 9 hours)"},
+  {key:"avg_gt9", criteria:"Average Daily Office Hours (Only onsite employees) (Only > 9 hours)"},
+  {key:null, criteria:"Home Office Count (Only onsite employees) ( > 2 times)"},
+  {key:null, criteria:"Transport allowance (Misuse description, if any)"},
+  {key:null, criteria:"Dormitory low utlization (< 80%)"},
+  {key:null, criteria:"ExaNest Misuse"},
+  {key:null, criteria:"Transport Utilization (Only include people < 80%)"},
+  {key:null, criteria:"Non-Cooperative Behaviour (if any)"},
+  {key:null, criteria:"Leave Count mismatch with Aladin against fingerprint device (Count) (Non bKash)"},
+  {key:null, criteria:"Leave Count mismatch with Aladin against bKash Timecard (Count) (Only bKash)"},
+  {key:null, criteria:"Extra Working days Count (> 2 / Month)"},
+  {key:null, criteria:"Recharge (Misuse description, if any)"},
+  {key:null, criteria:"IT incentive (Misuse description, if any)"},
+  {key:null, criteria:"Health (Misuse description, if any)"},
+  {key:null, criteria:"Interview cancellation ( > 20% months)"},
+  {key:null, criteria:"KPI flag from bKash (Description)"},
+];
+function getSailorCriteriaList(){
+  const src = (OVR.sailorCriteria && OVR.sailorCriteria.length) ? OVR.sailorCriteria : SAILOR_CRITERIA_DEFAULT;
+  return src.map((c,i)=>({no:i+1, key:c.key||null, criteria:c.criteria}));
 }
 function computeOnsiteThresholdCriterion(month, field, threshold){
   const idx = MATRIX.idx.get(month);
@@ -1075,23 +1089,42 @@ function computeOnsiteThresholdCriterion(month, field, threshold){
   out.sort((a,b)=> b.days-a.days || a.name.localeCompare(b.name));
   return out;
 }
-const SAILOR_CALCULATORS = [
-  { match: /^Late Check in Count/i, compute: month => computeOnsiteThresholdCriterion(month, "late", 3).map(e=>({name:e.name, value:String(e.days)})) },
-  { match: /^Partial Attendance Count/i, compute: month => computeOnsiteThresholdCriterion(month, "b8", 3).map(e=>({name:e.name, value:String(e.days)})) },
-  { match: /^Early Check Out/i, compute: month => computeOnsiteThresholdCriterion(month, "eco", 3).map(e=>({name:e.name, value:String(e.days)})) },
-];
+function computeAvgHoursCriterion(month, mode){
+  // mode "lt9": average daily office hours below 9h; "gt9": above 9h
+  const idx = MATRIX.idx.get(month);
+  if(!idx) return [];
+  const out=[];
+  for(const [id,r] of idx.entries()){
+    const team = r.team || MATRIX.roster.get(id)?.team || "";
+    if(/^support staff$/i.test(team)) continue;
+    if(!isOnsite({perks:r.perks, team})) continue;
+    if(r.avg==null) continue;
+    if(mode==="lt9" ? !(r.avg<9) : !(r.avg>9)) continue;
+    const name = r.name || MATRIX.roster.get(id)?.name || id;
+    out.push({name, avg:r.avg, value:fmtDuration(r.avg)});
+  }
+  out.sort((a,b)=> (mode==="lt9" ? a.avg-b.avg : b.avg-a.avg) || a.name.localeCompare(b.name));
+  return out;
+}
+const SAILOR_CALCULATORS = {
+  late: month => computeOnsiteThresholdCriterion(month, "late", 3).map(e=>({name:e.name, value:String(e.days)})),
+  partial: month => computeOnsiteThresholdCriterion(month, "b8", 3).map(e=>({name:e.name, value:String(e.days)})),
+  early: month => computeOnsiteThresholdCriterion(month, "eco", 3).map(e=>({name:e.name, value:String(e.days)})),
+  avg_lt9: month => computeAvgHoursCriterion(month, "lt9"),
+  avg_gt9: month => computeAvgHoursCriterion(month, "gt9"),
+};
 function renderSailorCriteria(){
-  const criteria=DATA.sailorCriteriaOnly||[];
+  const criteria=getSailorCriteriaList();
   const thead=document.querySelector("#sailCritTbl thead");
   const tbody=document.querySelector("#sailCritTbl tbody");
   if(!criteria.length){
     thead.innerHTML="";
-    tbody.innerHTML = `<tr><td class="empty-state">No criteria yet — click Sync to load Jun-2026.</td></tr>`;
+    tbody.innerHTML = `<tr><td class="empty-state">No criteria defined.<p><button class="btn pri" style="height:28px" onclick="openCriteriaEditor()">+ Add criteria</button></p></td></tr>`;
     return;
   }
   const valueMaps = criteria.map(c=>{
-    const calc = SAILOR_CALCULATORS.find(x=>x.match.test(c.criteria));
-    return calc ? new Map(calc.compute("June").map(e=>[e.name, e.value])) : new Map();
+    const calc = c.key && SAILOR_CALCULATORS[c.key];
+    return calc ? new Map(calc("June").map(e=>[e.name, e.value])) : new Map();
   });
   const allNames = new Set();
   valueMaps.forEach(m=>m.forEach((v,name)=>allNames.add(name)));
@@ -1103,13 +1136,67 @@ function renderSailorCriteria(){
   </tr>`;
 
   if(!names.length){
-    tbody.innerHTML = `<tr><td colspan="${criteria.length+1}" class="empty-state">No calculated criteria yet for Jun-2026.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${criteria.length+1}" class="empty-state">No calculated values yet for Jun-2026 — click Sync to pull the latest Attendance data.</td></tr>`;
     return;
   }
   tbody.innerHTML = names.map(name=>`<tr>
     <td style="position:sticky;left:0;background:var(--card);font-weight:600">${esc(name)}</td>
     ${valueMaps.map(m=>`<td style="text-align:center">${m.has(name)?esc(m.get(name)):"—"}</td>`).join("")}
   </tr>`).join("");
+}
+
+/* ---- criteria editor (titles only; calculated columns stay linked by key) ---- */
+function openCriteriaEditor(){
+  const list = getSailorCriteriaList();
+  $("#modalBox").innerHTML = `
+    <div class="modal-h">
+      <div><h3>Edit Sailor's Report Criteria</h3><div class="sub">Titles only — calculated columns (Late Check-in, Partial Attendance, etc.) stay linked to their existing logic</div></div>
+      <button class="x-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-b">
+      <div id="critEditRows" style="display:flex;flex-direction:column;gap:8px;max-height:50vh;overflow:auto">
+        ${list.map((c,i)=>`
+          <div class="crit-edit-row" data-key="${esc(c.key||"")}" style="display:flex;gap:8px;align-items:center">
+            <span style="width:22px;color:var(--mut);font-size:12px">${i+1}</span>
+            <input type="text" value="${esc(c.criteria)}" style="flex:1">
+            <button title="remove" onclick="this.closest('.crit-edit-row').remove()" style="width:26px;height:26px;flex:none;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--mut);cursor:pointer;font-size:14px;line-height:1">×</button>
+          </div>`).join("")}
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn" onclick="addCriteriaEditRow()">+ Add criterion</button>
+        <div class="spacer"></div>
+        <button class="btn danger" onclick="resetCriteriaToDefault()">Reset to default</button>
+        <button class="btn pri" onclick="saveCriteriaEdits()">Save</button>
+      </div>
+    </div>`;
+  $("#ovl").classList.add("on");
+}
+function addCriteriaEditRow(){
+  const wrap=document.getElementById("critEditRows");
+  const i=wrap.children.length;
+  const div=document.createElement("div");
+  div.className="crit-edit-row";
+  div.dataset.key="";
+  div.style.cssText="display:flex;gap:8px;align-items:center";
+  div.innerHTML = `<span style="width:22px;color:var(--mut);font-size:12px">${i+1}</span>
+    <input type="text" value="" placeholder="New criterion…" style="flex:1">
+    <button title="remove" onclick="this.closest('.crit-edit-row').remove()" style="width:26px;height:26px;flex:none;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--mut);cursor:pointer;font-size:14px;line-height:1">×</button>`;
+  wrap.appendChild(div);
+  div.querySelector("input").focus();
+}
+function saveCriteriaEdits(){
+  const rows=[...document.querySelectorAll("#critEditRows .crit-edit-row")];
+  const list = rows.map(r=>{
+    const val=r.querySelector("input").value.trim();
+    return val ? {key:r.dataset.key||null, criteria:val} : null;
+  }).filter(Boolean);
+  if(!list.length){ toast("Add at least one criterion"); return; }
+  OVR.sailorCriteria = list;
+  save(); renderSailorCriteria(); closeModal(); toast("Criteria saved");
+}
+function resetCriteriaToDefault(){
+  OVR.sailorCriteria = null;
+  save(); renderSailorCriteria(); closeModal(); toast("Reverted to default criteria");
 }
 
 
