@@ -45,12 +45,13 @@ body:not(.light) .theme-toggle .label .on{display:inline}
 body:not(.light) .theme-toggle .label .off{display:none}
 body.light .theme-toggle .label .off{display:inline}
 
-nav.tabs{border-bottom:1px solid var(--line);background:var(--bg2)}
-.tabs-in{max-width:1280px;margin:0 auto;padding:0 24px;display:flex;gap:4px}
-.tab{padding:13px 18px;color:var(--mut);font-weight:600;font-size:13.5px;border-bottom:2px solid transparent;display:flex;gap:8px;align-items:center;transition:.15s}
-.tab:hover{color:var(--txt)}
-.tab.on{color:var(--txt);border-image:var(--grad) 1;border-bottom:2px solid #5b8cff}
-.tab .cnt{background:var(--card2);border:1px solid var(--line);border-radius:20px;padding:0 7px;font-size:11px;color:var(--mut)}
+.years a .chev{flex:none;margin-left:8px;font-size:13px;font-weight:900;color:var(--mut);transition:transform .15s}
+.year-subnav{display:none;flex-direction:column;gap:4px;padding-left:14px;margin:2px 0 4px}
+.year-subnav.open{display:flex}
+.side-tab{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid transparent;background:none;color:var(--mut);font-weight:600;font-size:12.5px;text-align:left;cursor:pointer;transition:.15s}
+.side-tab:hover{color:var(--txt);background:var(--card2)}
+.side-tab.on{color:var(--txt);background:var(--card2);border-color:var(--line)}
+.side-tab .cnt{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:0 7px;font-size:11px;color:var(--mut);margin-left:auto}
 
 main{max-width:1280px;margin:0 auto;padding:26px 24px 80px}
 .view{display:none}.view.on{display:block;animation:fade .25s ease}
@@ -171,7 +172,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 .p-sync{background:var(--infobg)!important;color:var(--info)!important}
 @keyframes pulse{50%{opacity:.4}}
 .p-sync{animation:pulse 1.1s infinite}
-@media(max-width:720px){.top-in{padding:12px 14px}.tabs-in{padding:0 8px;overflow-x:auto}main{padding:18px 14px 60px}
+@media(max-width:720px){.top-in{padding:12px 14px}main{padding:18px 14px 60px}
   .layout{grid-template-columns:1fr}
   .sidebar{display:none}
 }
@@ -222,18 +223,18 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
       <span class="label"><span class="on">Dark</span><span class="off">Light</span></span>
     </button>
   </div>
-  <nav class="tabs"><div class="tabs-in">
-    <button class="tab on" data-v="att">▦ Attendance</button>
-    <button class="tab" data-v="sail">⚑ Sailor's Report</button>
-    <button class="tab" data-v="db">✎ Data Editor <span class="cnt" id="ovrCount">0</span></button>
-  </div></nav>
 </header>
 
 <div class="layout">
 <aside class="sidebar" aria-label="Year pages">
   <h2>Year</h2>
   <nav class="years">
-    <a id="year2026" class="active" href="?year=2026" aria-current="page"><span class="dot"></span> PX Team Dashboard-2026</a>
+    <a id="year2026" class="active" href="?year=2026" aria-current="page" onclick="return toggleYear2026(event)"><span class="dot"></span><span style="flex:1">PX Team Dashboard-2026</span><span class="chev" id="year2026Chev">▾</span></a>
+    <div class="year-subnav" id="year2026Sub">
+      <button class="side-tab on" data-v="att">▦ Attendance- Raw data</button>
+      <button class="side-tab" data-v="sail">⚑ Sailor's Raw data</button>
+      <button class="side-tab" data-v="db">✎ Data Editor <span class="cnt" id="ovrCount">0</span></button>
+    </div>
     <a id="year2027" class="stub" href="?year=2027"><span class="dot"></span> PX Team Dashboard-2027 <span class="badge b-mut">stub</span></a>
   </nav>
   <p class="foot-note">2026 is live from <em>Sample of Attendance-2026</em>. 2027 is a separate page (Phase 2, empty shell for now).</p>
@@ -326,14 +327,16 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 
 <!-- ================= SAILOR'S REPORT ================= -->
 <section class="view" id="view-sail">
+  <div class="toolbar">
+    <select id="sailReportMonthSel" onchange="onSailReportMonthChange()" style="height:36px"></select>
+    <button class="btn" onclick="openCriteriaEditor()">✎ Edit Criteria</button>
+  </div>
   <div class="panel">
     <div class="panel-h">
       <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
         <h3 style="white-space:nowrap">Sailor's Report — Criteria <span id="sailCritMonthLbl">Jun-2026</span></h3>
         <span class="hint">criteria titles are fixed defaults (not synced from the sheet) · employees down the side · Late Check-in, Partial Attendance, Early Check Out, Avg &lt;9h &amp; Avg &gt;9h calculated live from Attendance Summary · other criteria to follow</span>
       </div>
-      <div class="spacer"></div>
-      <button class="btn" onclick="openCriteriaEditor()">✎ Edit Criteria</button>
     </div>
     <div class="tblwrap">
       <table id="sailCritTbl">
@@ -469,11 +472,20 @@ function effRow(emp, month){
 function effRows(month){
   return DATA.employees[month].map(e => effRow(e.id, month));
 }
-/* ============ tabs ============ */
-document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
-  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===t));
+/* ============ tabs (nested under PX Team Dashboard-2026 in the sidebar) ============ */
+document.querySelectorAll(".side-tab").forEach(t=>t.onclick=()=>{
+  document.querySelectorAll(".side-tab").forEach(x=>x.classList.toggle("on",x===t));
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id==="view-"+t.dataset.v));
 });
+let year2026Open = false;
+function toggleYear2026(e){
+  if(YEAR!=="2026") return true; // let the link navigate to switch year
+  e.preventDefault();
+  year2026Open = !year2026Open;
+  document.getElementById("year2026Sub").classList.toggle("open", year2026Open);
+  document.getElementById("year2026Chev").textContent = year2026Open ? "▴" : "▾";
+  return false;
+}
 function toggleTheme(){
   document.body.classList.toggle("light");
   localStorage.setItem("pxdash-theme", document.body.classList.contains("light")?"light":"dark");
@@ -1156,7 +1168,19 @@ function getCriterionValues(month, key){
   if(SAILOR_COMPUTED[key]) return SAILOR_COMPUTED[key](month);
   return getManualEntries(month, key).map(e=>({name:e.name, value:e.value}));
 }
+let sailReportMonth = "June";
+function onSailReportMonthChange(){
+  sailReportMonth = document.getElementById("sailReportMonthSel").value;
+  renderSailorCriteria();
+}
 function renderSailorCriteria(){
+  const monthSel=document.getElementById("sailReportMonthSel");
+  if(monthSel){
+    if(!monthSel.options.length) monthSel.innerHTML = ALL_MONTHS.map(m=>`<option value="${m}">${shortYearLabel(m)}</option>`).join("");
+    monthSel.value = sailReportMonth;
+  }
+  const lbl=document.getElementById("sailCritMonthLbl"); if(lbl) lbl.textContent = shortYearLabel(sailReportMonth);
+
   const criteria=getSailorCriteriaList();
   const thead=document.querySelector("#sailCritTbl thead");
   const tbody=document.querySelector("#sailCritTbl tbody");
@@ -1165,7 +1189,7 @@ function renderSailorCriteria(){
     tbody.innerHTML = `<tr><td class="empty-state">No criteria defined.<p><button class="btn pri" style="height:28px" onclick="openCriteriaEditor()">+ Add criteria</button></p></td></tr>`;
     return;
   }
-  const valueMaps = criteria.map(c=> new Map(getCriterionValues("June", c.key).map(e=>[e.name, e.value])));
+  const valueMaps = criteria.map(c=> new Map(getCriterionValues(sailReportMonth, c.key).map(e=>[e.name, e.value])));
   const allNames = new Set();
   valueMaps.forEach(m=>m.forEach((v,name)=>allNames.add(name)));
   const names=[...allNames].sort((a,b)=>a.localeCompare(b));
@@ -1176,7 +1200,7 @@ function renderSailorCriteria(){
   </tr>`;
 
   if(!names.length){
-    tbody.innerHTML = `<tr><td colspan="${criteria.length+1}" class="empty-state">No calculated values yet for Jun-2026 — click Sync to pull the latest Attendance data.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${criteria.length+1}" class="empty-state">No data for ${esc(shortYearLabel(sailReportMonth))} yet — Attendance hasn't been synced/entered for this month.</td></tr>`;
     return;
   }
   tbody.innerHTML = names.map(name=>`<tr>
