@@ -329,7 +329,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <div class="panel">
     <div class="panel-h">
       <h3>Sailor's Report — Criteria <span id="sailCritMonthLbl">Jun-2026</span></h3>
-      <span class="hint">criteria across the top (hover a header for full text) · employees down the side · Late Check-in calculated from Attendance Summary (Total Late) · other criteria to follow</span>
+      <span class="hint">criteria across the top (hover a header for full text) · employees down the side · Late Check-in &amp; Partial Attendance calculated from Attendance Summary (Total Late / Less than 8 Hours) · other criteria to follow</span>
     </div>
     <div class="tblwrap">
       <table id="sailCritTbl">
@@ -1059,7 +1059,7 @@ function buildSailorCriteriaOnly(rows){
   }
   return out;
 }
-function computeLateCheckinCriterion(month){
+function computeOnsiteThresholdCriterion(month, field, threshold){
   const idx = MATRIX.idx.get(month);
   if(!idx) return [];
   const out=[];
@@ -1067,15 +1067,17 @@ function computeLateCheckinCriterion(month){
     const team = r.team || MATRIX.roster.get(id)?.team || "";
     if(/^support staff$/i.test(team)) continue;
     if(!isOnsite({perks:r.perks, team})) continue;
-    if(r.late==null || r.late<=3) continue;
+    const v = r[field];
+    if(v==null || v<=threshold) continue;
     const name = r.name || MATRIX.roster.get(id)?.name || id;
-    out.push({name, days:r.late});
+    out.push({name, days:v});
   }
   out.sort((a,b)=> b.days-a.days || a.name.localeCompare(b.name));
   return out;
 }
 const SAILOR_CALCULATORS = [
-  { match: /^Late Check in Count/i, compute: month => computeLateCheckinCriterion(month).map(e=>({name:e.name, value:String(e.days)})) },
+  { match: /^Late Check in Count/i, compute: month => computeOnsiteThresholdCriterion(month, "late", 3).map(e=>({name:e.name, value:String(e.days)})) },
+  { match: /^Partial Attendance Count/i, compute: month => computeOnsiteThresholdCriterion(month, "b8", 3).map(e=>({name:e.name, value:String(e.days)})) },
 ];
 function renderSailorCriteria(){
   const criteria=DATA.sailorCriteriaOnly||[];
