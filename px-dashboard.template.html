@@ -360,6 +360,24 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
       <tbody id="ovrBody"><tr><td colspan="5" class="empty-state">No manual edits yet.<p>Edit values from the Attendance table (row menu) or Sailor's Report (+ Add).</p></td></tr></tbody>
     </table></div>
   </div>
+  <div class="panel" style="margin-top:16px">
+    <div class="panel-h">
+      <h3>Sailor's Report — Manual Entries</h3>
+      <span class="hint">for criteria not auto-computed from Attendance · pick a month &amp; criterion, then add name/value entries</span>
+    </div>
+    <div style="padding:20px">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+        <select id="manMonthSel" onchange="onManualEntryMonthChange()"></select>
+        <select id="manCritSel" style="flex:1;min-width:260px" onchange="onManualEntryCritChange()"></select>
+      </div>
+      <div id="manEntryList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="manEntryName" placeholder="Name / description…" style="flex:1">
+        <input type="text" id="manEntryValue" placeholder="count / note" style="width:160px">
+        <button class="btn pri" onclick="addManualEntryFromForm()">+ Add</button>
+      </div>
+    </div>
+  </div>
 </section>
 </main>
 
@@ -381,7 +399,13 @@ const LS_KEY = "pxdash-overrides-v1";
 let OVR = load();
 function load(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{att:{},sail:{}}}catch(e){return{att:{},sail:{}}} }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(OVR)); document.getElementById("ovrCount").textContent = ovrTotal(); }
-function ovrTotal(){ return Object.keys(OVR.att).length + Object.keys(OVR.sail).length; }
+function ovrTotal(){
+  let n = Object.keys(OVR.att).length + Object.keys(OVR.sail).length;
+  if(OVR.sailorCriteria) n++;
+  const me = OVR.sailorManualEntries||{};
+  for(const month of Object.keys(me)) for(const key of Object.keys(me[month])) n += me[month][key].length;
+  return n;
+}
 
 
 let teamSelection = new Set(); // empty = All
@@ -780,6 +804,13 @@ function renderOvrLog(){
     const crit=DATA.sailorCriteria[+ci]?.c||ci;
     arr.forEach(e=>items.push(["Sailor's",`${crit} · ${month}`,e.n,e.v]));
   });
+  const critByKey = new Map(getSailorCriteriaList().map(c=>[c.key,c.criteria]));
+  Object.entries(OVR.sailorManualEntries||{}).forEach(([month,byKey])=>{
+    Object.entries(byKey||{}).forEach(([key,arr])=>{
+      const crit = critByKey.get(key)||key;
+      arr.forEach(e=>items.push(["Sailor's",`${crit} · ${shortYearLabel(month)}`,e.name,e.value]));
+    });
+  });
   if(!items.length){tb.innerHTML=`<tr><td colspan="5" class="empty-state">No manual edits yet.<p>Edit values from the Attendance table (employee popup) or Sailor's Report (+ Add).</p></td></tr>`;return;}
   tb.innerHTML=items.map(it=>`<tr>
     <td><span class="badge ${it[0]==="Attendance"?"b-info":"t-acc badge"}" style="${it[0]!=="Attendance"?"background:var(--warnbg);color:var(--warn)":""}">${it[0]}</span></td>
@@ -789,7 +820,7 @@ function renderOvrLog(){
 }
 function resetOverrides(){
   if(!confirm("Remove ALL manual edits and restore sheet values?"))return;
-  OVR={att:{},sail:{},sailorCriteria:null}; save(); renderAtt(); renderSailorCriteria(); renderOvrLog(); toast("All manual edits cleared");
+  OVR={att:{},sail:{},sailorCriteria:null,sailorManualEntries:{}}; save(); renderAtt(); renderSailorCriteria(); renderManualEntryEditor(); renderOvrLog(); toast("All manual edits cleared");
 }
 
 /* ============ export ============ */
@@ -991,7 +1022,7 @@ async function syncLiveRun(){
   DATA.sailors=sailors; DATA.profiles=profiles;
   DATA.sailorManual=Object.keys(sailorManual).length?sailorManual:DATA.sailorManual;
   setPill("live","live");
-  buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria();
+  buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria(); renderManualEntryEditor();
   $("#syncInfo").textContent=`Live · synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})} · ${months.length} month${months.length>1?"s":""}`;
   toast("Live sync complete — "+months.join(", "));
 }
@@ -1047,27 +1078,27 @@ function parseSailorTab(rows){
 
 /* ============ sailor's report — criteria (fixed default list, editable) ============ */
 const SAILOR_CRITERIA_DEFAULT = [
-  {key:null, criteria:"Enjoyed Late / Unrequested Meal  (>3 times )"},
-  {key:null, criteria:"Double lunch booking (bKash & Exabyting)"},
+  {key:"meal_late", criteria:"Enjoyed Late / Unrequested Meal  (>3 times )"},
+  {key:"double_lunch", criteria:"Double lunch booking (bKash & Exabyting)"},
   {key:"late", criteria:"Late Check in Count (> 3 times) (Only onsite employees)"},
   {key:"partial", criteria:"Partial Attendance Count ( > 3 times) (<8 hours) (Only onsite employees)"},
   {key:"early", criteria:"Early Check Out ( > 3 times) (Only onsite employees)"},
   {key:"avg_lt9", criteria:"Average Daily Office Hours (Only onsite employees) (Only < 9 hours)"},
   {key:"avg_gt9", criteria:"Average Daily Office Hours (Only onsite employees) (Only > 9 hours)"},
-  {key:null, criteria:"Home Office Count (Only onsite employees) ( > 2 times)"},
-  {key:null, criteria:"Transport allowance (Misuse description, if any)"},
-  {key:null, criteria:"Dormitory low utlization (< 80%)"},
-  {key:null, criteria:"ExaNest Misuse"},
-  {key:null, criteria:"Transport Utilization (Only include people < 80%)"},
-  {key:null, criteria:"Non-Cooperative Behaviour (if any)"},
-  {key:null, criteria:"Leave Count mismatch with Aladin against fingerprint device (Count) (Non bKash)"},
-  {key:null, criteria:"Leave Count mismatch with Aladin against bKash Timecard (Count) (Only bKash)"},
-  {key:null, criteria:"Extra Working days Count (> 2 / Month)"},
-  {key:null, criteria:"Recharge (Misuse description, if any)"},
-  {key:null, criteria:"IT incentive (Misuse description, if any)"},
-  {key:null, criteria:"Health (Misuse description, if any)"},
-  {key:null, criteria:"Interview cancellation ( > 20% months)"},
-  {key:null, criteria:"KPI flag from bKash (Description)"},
+  {key:"home_office", criteria:"Home Office Count (Only onsite employees) ( > 2 times)"},
+  {key:"transport_allowance", criteria:"Transport allowance (Misuse description, if any)"},
+  {key:"dormitory", criteria:"Dormitory low utlization (< 80%)"},
+  {key:"exanest_misuse", criteria:"ExaNest Misuse"},
+  {key:"transport_util", criteria:"Transport Utilization (Only include people < 80%)"},
+  {key:"non_coop", criteria:"Non-Cooperative Behaviour (if any)"},
+  {key:"leave_fingerprint", criteria:"Leave Count mismatch with Aladin against fingerprint device (Count) (Non bKash)"},
+  {key:"leave_bkash", criteria:"Leave Count mismatch with Aladin against bKash Timecard (Count) (Only bKash)"},
+  {key:"extra_workdays", criteria:"Extra Working days Count (> 2 / Month)"},
+  {key:"recharge", criteria:"Recharge (Misuse description, if any)"},
+  {key:"it_incentive", criteria:"IT incentive (Misuse description, if any)"},
+  {key:"health", criteria:"Health (Misuse description, if any)"},
+  {key:"interview_cancel", criteria:"Interview cancellation ( > 20% months)"},
+  {key:"kpi_bkash", criteria:"KPI flag from bKash (Description)"},
 ];
 function getSailorCriteriaList(){
   const src = (OVR.sailorCriteria && OVR.sailorCriteria.length) ? OVR.sailorCriteria : SAILOR_CRITERIA_DEFAULT;
@@ -1106,13 +1137,21 @@ function computeAvgHoursCriterion(month, mode){
   out.sort((a,b)=> (mode==="lt9" ? a.avg-b.avg : b.avg-a.avg) || a.name.localeCompare(b.name));
   return out;
 }
-const SAILOR_CALCULATORS = {
+const SAILOR_COMPUTED = {
   late: month => computeOnsiteThresholdCriterion(month, "late", 3).map(e=>({name:e.name, value:String(e.days)})),
   partial: month => computeOnsiteThresholdCriterion(month, "b8", 3).map(e=>({name:e.name, value:String(e.days)})),
   early: month => computeOnsiteThresholdCriterion(month, "eco", 3).map(e=>({name:e.name, value:String(e.days)})),
   avg_lt9: month => computeAvgHoursCriterion(month, "lt9"),
   avg_gt9: month => computeAvgHoursCriterion(month, "gt9"),
 };
+function getManualEntries(month, key){
+  return (OVR.sailorManualEntries?.[month]?.[key]) || [];
+}
+function getCriterionValues(month, key){
+  if(!key) return [];
+  if(SAILOR_COMPUTED[key]) return SAILOR_COMPUTED[key](month);
+  return getManualEntries(month, key).map(e=>({name:e.name, value:e.value}));
+}
 function renderSailorCriteria(){
   const criteria=getSailorCriteriaList();
   const thead=document.querySelector("#sailCritTbl thead");
@@ -1122,10 +1161,7 @@ function renderSailorCriteria(){
     tbody.innerHTML = `<tr><td class="empty-state">No criteria defined.<p><button class="btn pri" style="height:28px" onclick="openCriteriaEditor()">+ Add criteria</button></p></td></tr>`;
     return;
   }
-  const valueMaps = criteria.map(c=>{
-    const calc = c.key && SAILOR_CALCULATORS[c.key];
-    return calc ? new Map(calc("June").map(e=>[e.name, e.value])) : new Map();
-  });
+  const valueMaps = criteria.map(c=> new Map(getCriterionValues("June", c.key).map(e=>[e.name, e.value])));
   const allNames = new Set();
   valueMaps.forEach(m=>m.forEach((v,name)=>allNames.add(name)));
   const names=[...allNames].sort((a,b)=>a.localeCompare(b));
@@ -1184,20 +1220,86 @@ function addCriteriaEditRow(){
   wrap.appendChild(div);
   div.querySelector("input").focus();
 }
+function slugifyCriterion(text){
+  return "custom_" + text.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,30) + "_" + Date.now().toString(36).slice(-4);
+}
 function saveCriteriaEdits(){
   const rows=[...document.querySelectorAll("#critEditRows .crit-edit-row")];
   const list = rows.map(r=>{
     const val=r.querySelector("input").value.trim();
-    return val ? {key:r.dataset.key||null, criteria:val} : null;
+    if(!val) return null;
+    const key = r.dataset.key || slugifyCriterion(val);
+    return {key, criteria:val};
   }).filter(Boolean);
   if(!list.length){ toast("Add at least one criterion"); return; }
   OVR.sailorCriteria = list;
-  save(); renderSailorCriteria(); closeModal(); toast("Criteria saved");
+  save(); renderSailorCriteria(); renderManualEntryEditor(); closeModal(); toast("Criteria saved");
 }
 function resetCriteriaToDefault(){
   OVR.sailorCriteria = null;
-  save(); renderSailorCriteria(); closeModal(); toast("Reverted to default criteria");
+  save(); renderSailorCriteria(); renderManualEntryEditor(); closeModal(); toast("Reverted to default criteria");
 }
+
+/* ---- manual entries for non-computed criteria (Data Editor) ---- */
+let manEntryMonth = "June", manEntryKey = null;
+function manualEntryCriteriaOptions(){
+  return getSailorCriteriaList().filter(c=>c.key && !SAILOR_COMPUTED[c.key]);
+}
+function addManualEntry(month, key, name, value){
+  if(!OVR.sailorManualEntries) OVR.sailorManualEntries={};
+  if(!OVR.sailorManualEntries[month]) OVR.sailorManualEntries[month]={};
+  if(!OVR.sailorManualEntries[month][key]) OVR.sailorManualEntries[month][key]=[];
+  OVR.sailorManualEntries[month][key].push({name, value});
+  save();
+}
+function removeManualEntry(month, key, index){
+  const arr = OVR.sailorManualEntries?.[month]?.[key];
+  if(!arr) return;
+  arr.splice(index,1);
+  save();
+  renderManualEntryEditor();
+  renderSailorCriteria();
+  renderOvrLog();
+}
+function addManualEntryFromForm(){
+  const nameEl=document.getElementById("manEntryName"), valEl=document.getElementById("manEntryValue");
+  const name=nameEl.value.trim(), value=valEl.value.trim();
+  if(!name){ toast("Enter a name / description"); return; }
+  addManualEntry(manEntryMonth, manEntryKey, name, value||"—");
+  nameEl.value=""; valEl.value=""; nameEl.focus();
+  renderManualEntryEditor();
+  renderSailorCriteria();
+  renderOvrLog();
+  toast("Entry added");
+}
+function renderManualEntryEditor(){
+  const monthSel=document.getElementById("manMonthSel"), critSel=document.getElementById("manCritSel");
+  if(!monthSel || !critSel) return;
+  if(!monthSel.options.length){
+    monthSel.innerHTML = ALL_MONTHS.map(m=>`<option value="${m}">${shortYearLabel(m)}</option>`).join("");
+    monthSel.value = manEntryMonth;
+  }
+  const options = manualEntryCriteriaOptions();
+  const prevKey = critSel.value;
+  critSel.innerHTML = options.map(c=>`<option value="${esc(c.key)}">${esc(c.criteria)}</option>`).join("");
+  if(!options.length){ manEntryKey=null; }
+  else if(options.some(c=>c.key===prevKey)) critSel.value=prevKey;
+  else if(options.some(c=>c.key===manEntryKey)) critSel.value=manEntryKey;
+  else critSel.value = options[0].key;
+  manEntryKey = critSel.value || null;
+  manEntryMonth = monthSel.value;
+
+  const list=document.getElementById("manEntryList");
+  if(!manEntryKey){ list.innerHTML = `<div class="empty-state">No manual criteria available.</div>`; return; }
+  const entries = getManualEntries(manEntryMonth, manEntryKey);
+  list.innerHTML = entries.length ? entries.map((e,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:8px">
+      <b style="flex:1">${esc(e.name)}</b><span style="color:var(--mut)">${esc(e.value)}</span>
+      <button title="remove" onclick="removeManualEntry('${esc(manEntryMonth)}','${esc(manEntryKey)}',${i})" style="width:24px;height:24px;flex:none;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--mut);cursor:pointer;font-size:13px;line-height:1">×</button>
+    </div>`).join("") : `<div class="none-txt">No entries yet for ${esc(shortYearLabel(manEntryMonth))}.</div>`;
+}
+function onManualEntryMonthChange(){ manEntryMonth=document.getElementById("manMonthSel").value; renderManualEntryEditor(); }
+function onManualEntryCritChange(){ manEntryKey=document.getElementById("manCritSel").value; renderManualEntryEditor(); }
 
 
 /* ============ boot ============ */
@@ -1211,13 +1313,14 @@ function resetCriteriaToDefault(){
     DATA.months=[]; DATA.daily={};
     const pill=document.getElementById("syncPill"); if(pill){ pill.className="badge b-mut"; pill.textContent="● 2027 stub"; pill.disabled=true; }
     const si2=document.getElementById("syncInfo"); if(si2) si2.textContent="PX Team Dashboard-2027 · Coming next phase — no data yet";
-    renderAtt(); renderSailorCriteria(); renderOvrLog(); save();
+    renderAtt(); renderSailorCriteria(); renderManualEntryEditor(); renderOvrLog(); save();
     return;
   }
   populateMonthSelect();
   buildTeamMs();
   refreshMatrix(); renderAtt();
   renderSailorCriteria();
+  renderManualEntryEditor();
   renderOvrLog();
   save();
  }catch(e){ console.error(e);}
