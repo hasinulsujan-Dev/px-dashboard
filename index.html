@@ -326,20 +326,20 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 
 <!-- ================= SAILOR'S REPORT ================= -->
 <section class="view" id="view-sail">
-  <div class="toolbar">
-    <div class="chips" id="sailChips"></div>
-    <div class="spacer"></div>
-    <input type="text" id="sailQ" placeholder="Filter criteria…" style="height:36px;width:210px" oninput="renderSail()">
-    <label class="tgl"><input type="checkbox" id="flagOnly" onchange="renderSail()"> Flagged only</label>
-  </div>
-  <div class="kpis" id="sailKpis"></div>
   <div class="panel">
     <div class="panel-h">
-      <h3>Sailor's Report — <span id="sailMonthLbl"></span></h3>
-      <span class="hint">criteria #3–7 auto-computed from attendance · others manual</span>
-      <div class="spacer"></div>
+      <h3>Sailor's Report — Criteria <span id="sailCritMonthLbl">Jun-2026</span></h3>
+      <span class="hint">criteria list from the sheet, in sheet order · values to be added later</span>
     </div>
-    <div id="critList"></div>
+    <div class="tblwrap">
+      <table id="sailCritTbl">
+        <thead><tr>
+          <th style="width:40px">#</th>
+          <th>Criteria</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 </section>
 
@@ -418,7 +418,6 @@ function onTeamCheck(el){
 }
 function clearTeamMs(){ teamSelection.clear(); buildTeamMs(); renderAtt(); }
 
-let sailMonth = DATA.months[DATA.months.length-1];
 // Dynamic year titles (overrides static template)
 document.title = dashLabel;
 const _dt=document.getElementById("dashTitle"); if(_dt) _dt.textContent=dashLabel;
@@ -445,20 +444,6 @@ function effRow(emp, month){
 function effRows(month){
   return DATA.employees[month].map(e => effRow(e.id, month));
 }
-function effSail(month){
-  // returns array of {entries, auto:boolean, edited:boolean} aligned to DATA.sailorCriteria
-  return DATA.sailorCriteria.map((c,i)=>{
-    const key = month+"#"+i;
-    if(OVR.sail?.[key]) return {entries:OVR.sail[key], edited:true};
-    const AUTO_IDX = {2:"late",3:"partial",4:"early",5:"avg_lt9",6:"avg_gt9"};
-const SHEET_SAILOR_JULY = {"Late Check in Count (> 3 times) (Only onsite employees)": ["Tapu Mandal-11", "A.B Siddik-13", "Saiful Islam Rana-4", "Sohug Mullah-9", "Md. Imran Hossain-9", "Adib Sultan-8", "Shahriar Asraf-16", "Shahid Afridi-8", "Shafayet Hossain-16", "Md Nabid Anzum Akash-12", "Md Akash-16", "Mohammad Tanvirul Asif Chowdhury Rafi-14", "Shah Md Mostofa Meem-14", "Md. Rifat Farazi-15", "Mashuk Tamim-4", "Tonmoy George Chiran-15", "Strig Ceasar Palma-19", "Md. Khalid Hasan-18", "Md. Sajibul Alam Sajib-15", "Md. Rafsan Biswas-14", "Md. Monjurul Hasan-7", "K M Muntasir Billah-5", "Attendance-2026"], "Partial Attendance Count ( > 3 times) (<8 hours) (Only onsite employees)": ["Tapu Mandal-4", "A.B Siddik-6", "Md. Imran Hossain-4", "Adib Sultan-4", "Shahriar Asraf-10", "Md Nabid Anzum Akash-8", "Md Akash-5", "Shah Md Mostofa Meem-9", "Tonmoy George Chiran-6", "Strig Ceasar Palma-13", "K M Muntasir Billah-4", "Attendance-2026"], "Early Check Out ( > 3 times) (Only onsite employees)": ["A.B Siddik-5", "Md. Nafiz Hossain-6", "Adib Sultan-10", "Shahriar Asraf-11", "Shahid Afridi-5", "Md Nabid Anzum Akash-8", "Md Akash-4", "Shah Md Mostofa Meem-6", "Attendance-2026"], "Average Daily Office Hours (Only onsite employees) (Only < 9 hours)": ["Tapu Mandal-08:55:55", "A.B Siddik-08:37:45", "Saiful Islam Rana-07:20:10", "Md. Imran Hossain-07:40:33", "Adib Sultan-07:50:00", "Shahriar Asraf-06:58:28", "Shahid Afridi-07:50:54", "Md Nabid Anzum Akash-07:01:08", "Md Akash-08:57:16", "Shah Md Mostofa Meem-07:40:24", "Md. Rifat Farazi-08:47:53", "Tonmoy George Chiran-08:07:24", "Sirajus Salekin Nahin-07:58:00", "Strig Ceasar Palma-07:41:57", "Shahriar Alam Alvi-08:19:27", "Shaik Md. Ibnay Momen-08:37:27", "Md. Monjurul Hasan-08:42:09", "K M Muntasir Billah-08:57:14", "Attendance-2026"], "Average Daily Office Hours (Only onsite employees) (Only > 9 hours)": ["Sohug Mullah-09:26:03", "Md. Nafiz Hossain-09:39:36", "Anika Islam-09:18:13", "Shafayet Hossain-10:34:03", "Mohammad Tanvirul Asif Chowdhury Rafi-10:47:43", "Muhammad Hasinul Alam-12:14:27", "Mashuk Tamim-09:33:00", "Md. Khalid Hasan-09:17:03", "S. M. Wazedur Rahman-12:21:40", "A K Nafish Ali Ahsan-09:41:04", "Md. Sajibul Alam Sajib-09:29:55", "Md. Rafsan Biswas-09:31:16", "Md. Janibul Hoque-09:49:00", "Shartaz Yeasar Feeham-09:44:15", "Attendance-2026"]};
-
-    if(AUTO_IDX[i]!==undefined && DATA.sailors[month]) return {entries:(DATA.sailors[month][AUTO_IDX[i]]||[]), edited:false};
-    const man = DATA.sailorManual[month]?.[c.c];
-    return {entries:man||[], edited:false};
-  });
-}
-
 /* ============ tabs ============ */
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
   document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===t));
@@ -470,12 +455,6 @@ function toggleTheme(){
 }
 if(localStorage.getItem("pxdash-theme")==="light") document.body.classList.add("light");
 
-function initChips(elId, setter){
-  const el = $("#"+elId);
-  // Show all 12 months so Aug–Dec tabs exist even before their sheet data arrives.
-  el.innerHTML = ALL_MONTHS.map(m=>`<button class="chip ${sailMonth===m?"on":""}" data-m="${m}">${m.slice(0,3)}</button>`).join("");
-  el.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{ sailMonth=c.dataset.m; setter(); });
-}
 function applyYearChrome(){
   const y=YEAR;
   const a26=document.getElementById("year2026"), a27=document.getElementById("year2027"), banner=document.getElementById("yearStubBanner");
@@ -489,7 +468,6 @@ function applyYearChrome(){
   const foot=document.querySelector("footer"); if(foot) foot.textContent=foot.textContent.replace(/PX Team Dashboard[^·]*·/, dashLabel+" ·");
 }
 function populateMonthSelect(){ const sel=document.getElementById("attMonthSel"); if(!sel) return; [...sel.options].forEach(o=>o.textContent=shortYearLabel(o.value)); }
-function refreshChipsSail(){ initChips("sailChips", ()=>{ refreshChipsSail(); renderSail(); }); }
 
 const ALL_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 function fmtDuration(h){ if(h==null) return "—"; const sec=Math.round(h*3600); const hh=String(Math.floor(sec/3600)).padStart(2,"0"); const mm=String(Math.floor((sec%3600)/60)).padStart(2,"0"); const ss=String(sec%60).padStart(2,"0"); return `${hh}:${mm}:${ss}`; }
@@ -788,82 +766,6 @@ function saveEmp(id, month){
 }
 function clearEmp(id,month){ delete OVR.att[id+"@"+month]; save(); renderAtt(); openEmp(id,month); toast("Reverted to sheet values"); }
 
-/* ============ sailor render ============ */
-const AUTO_IDX = {2:"late",3:"partial",4:"early",5:"avg_lt9",6:"avg_gt9"};
-
-function respClass(resp){
-  if(/project/i.test(resp)) return "t-prj";
-  if(/accounts/i.test(resp)) return "t-acc";
-  return "t-px";
-}
-function entryHot(idx,v){
-  const f=parseFloat(String(v).replace(":", "."));
-  switch(idx){
-    case 0: case 2: case 3: case 4: return f>3;          // meal, partial, early thresholds >3
-    case 1: return f>2;                                   // home office >2 (also extra workdays idx15)
-    case 7: case 9: case 11: case 15: return f>2;
-    default: return false;
-  }
-}
-function renderSail(){
-  $("#sailMonthLbl").textContent = shortYearLabel(sailMonth);
-  const q=$("#sailQ").value.trim().toLowerCase();
-  const flagOnly=$("#flagOnly").checked;
-  const rows=effSail(sailMonth);
-  const flagged=rows.filter((r,i)=>r.entries.some(e=>entryHot(i,e.v))).length;
-  const filled=rows.filter(r=>r.entries.length).length;
-  $("#sailKpis").innerHTML=[
-    ["Criteria", DATA.sailorCriteria.length,"tracked per month","var(--acc)","rgba(91,140,255,.12)","☰"],
-    ["Flagged", flagged,"above threshold","var(--bad)","var(--badbg)","⚑"],
-    ["With data", filled,"criteria populated","var(--ok)","var(--okbg)","✓"],
-    ["Auto-computed", Object.keys(AUTO_IDX).length,"from attendance engine","var(--acc2)","rgba(139,92,255,.12)","⚙"],
-  ].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
-
-  $("#critList").innerHTML = DATA.sailorCriteria.map((c,i)=>{
-    if(q && !c.c.toLowerCase().includes(q)) return "";
-    const {entries,edited}=rows[i];
-    if(flagOnly && !entries.some(e=>entryHot(i,e.v))) return "";
-    const isAuto=AUTO_IDX[i]!==undefined;
-    return `<div class="crit-row">
-      <div class="crit-no">${String(i+1).padStart(2,"0")}</div>
-      <div class="crit-main">
-        <h4>${esc(c.c)}</h4>
-        <div class="crit-tags">
-          <span class="tag ${respClass(c.r)}">${esc(c.r)}</span>
-          ${isAuto?`<span class="tag t-auto">AUTO</span>`:""}
-          ${edited?`<span class="tag t-acc">MANUAL EDIT</span>`:""}
-        </div>
-        <div class="ppl">${entries.map((e,j)=>`
-          <span class="pp ${entryHot(i,e.v)?"hot":""}">
-            <b>${esc(e.n)}</b><span class="v">-${esc(e.v)}</span>
-            ${!isAuto?`<button class="x" title="remove" onclick="removeEntry(${i},${j})">×</button>`:""}
-          </span>`).join("")|| `<span class="none-txt">No entries for ${esc(sailMonth)}.</span>`}
-        </div>
-        ${!isAuto?`<div class="addform">
-          <input class="nm" id="add_nm_${i}" placeholder="Person / description…">
-          <input class="vl" id="add_v_${i}" placeholder="count/note">
-          <button class="btn pri" style="height:32px" onclick="addEntry(${i})">+ Add</button>
-        </div>`:`<div class="none-txt" style="margin-top:8px">Computed live from Attendance — ${monthLabel(AUTO_IDX[i])}.</div>`}
-      </div>
-    </div>`;
-  }).join("") || `<div class="empty-state">No criteria match.</div>`;
-}
-function monthLabel(k){return{late:"late check-ins > 3",partial:"partial (<8h) > 3",early:"early outs > 3","avg_lt9":"avg < 9h","avg_gt9":"avg > 9h"}[k]||k;}
-function addEntry(i){
-  const n=$("#add_nm_"+i).value.trim(), v=$("#add_v_"+i).value.trim()||"—";
-  if(!n){toast("Enter a name/description");return;}
-  const key=sailMonth+"#"+i;
-  const cur=(OVR.sail[key]||effSail(sailMonth)[i].entries).slice();
-  cur.push({n,v});
-  OVR.sail[key]=cur; save(); renderSail(); toast("Added entry");
-}
-function removeEntry(i,j){
-  const key=sailMonth+"#"+i;
-  const cur=(OVR.sail[key]||effSail(sailMonth)[i].entries).slice();
-  cur.splice(j,1);
-  OVR.sail[key]=cur; save(); renderSail(); toast("Removed entry");
-}
-
 /* ============ overrides log ============ */
 function renderOvrLog(){
   $("#dbCount").textContent = String(ovrTotal());
@@ -888,7 +790,7 @@ function renderOvrLog(){
 }
 function resetOverrides(){
   if(!confirm("Remove ALL manual edits and restore sheet values?"))return;
-  OVR={att:{},sail:{}}; save(); renderAtt(); renderSail(); renderOvrLog(); toast("All manual edits cleared");
+  OVR={att:{},sail:{}}; save(); renderAtt(); renderSailorCriteria(); renderOvrLog(); toast("All manual edits cleared");
 }
 
 /* ============ export ============ */
@@ -1085,13 +987,13 @@ async function syncLiveRun(){
     const [label, rows] = entry;
     const parsed=parseSailorTab(rows);
     if(parsed){ sailorManual[label]=parsed.manual; if(parsed.criteria.length) DATA.sailorCriteria=parsed.criteria; }
+    if(label==="June") DATA.sailorCriteriaOnly=buildSailorCriteriaOnly(rows);
   }
   DATA.months=months; DATA.employees=employees; DATA.daily=daily;
   DATA.sailors=sailors; DATA.profiles=profiles;
   DATA.sailorManual=Object.keys(sailorManual).length?sailorManual:DATA.sailorManual;
   setPill("live","live");
-  sailMonth=months[months.length-1];
-  buildTeamMs(); populateMonthSelect(); refreshChipsSail(); refreshMatrix(); renderAtt(); renderSail(); renderOvrLog();
+  buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria();
   $("#syncInfo").textContent=`Live · synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})} · ${months.length} month${months.length>1?"s":""}`;
   toast("Live sync complete — "+months.join(", "));
 }
@@ -1145,6 +1047,31 @@ function parseSailorTab(rows){
   return {criteria:crit, manual};
 }
 
+/* ============ sailor's report — criteria list (Column A only, sheet order) ============ */
+function buildSailorCriteriaOnly(rows){
+  if(!rows || rows.length<2) return [];
+  let start=-1;
+  for(let i=0;i<3;i++){ if(rows[i]&&["Criteria","Name"].includes((rows[i][0]||"").trim())){ start=i+1; break; } }
+  if(start<0) return [];
+  const out=[]; let no=0;
+  for(let i=start;i<rows.length;i++){
+    const criteria=(rows[i][0]||"").trim();
+    if(!criteria) continue;
+    no++;
+    out.push({no, criteria});
+  }
+  return out;
+}
+function renderSailorCriteria(){
+  const rows=DATA.sailorCriteriaOnly||[];
+  const tb=document.querySelector("#sailCritTbl tbody");
+  if(!rows.length){
+    tb.innerHTML = `<tr><td colspan="2" class="empty-state">No criteria yet — click Sync to load Jun-2026.</td></tr>`;
+    return;
+  }
+  tb.innerHTML = rows.map(r=>`<tr><td>${r.no}</td><td>${esc(r.criteria)}</td></tr>`).join("");
+}
+
 
 /* ============ boot ============ */
 (function boot(){ try{
@@ -1152,19 +1079,18 @@ function parseSailorTab(rows){
   if(YEAR==="2027"){
     // 2027 stub: no 2026 data fetch, render empty 14-col shells
     const teams=[...new Set(Object.values(DATA.employees).flat().map(e=>e.team).filter(Boolean).filter(team=>!/^support staff$/i.test(team)))].sort().filter((v,i,a)=>a.indexOf(v)===i);
-    refreshChipsSail();
     // build empty matrix for 2027 (all months empty) so Summary/Attendance render their empty states with Jan-2027 labels
     MATRIX={ms:[],roster:new Map(),idx:new Map()}; ALL_MONTHS.forEach(m=>MATRIX.idx.set(m,new Map()));
     DATA.months=[]; DATA.daily={};
     const pill=document.getElementById("syncPill"); if(pill){ pill.className="badge b-mut"; pill.textContent="● 2027 stub"; pill.disabled=true; }
     const si2=document.getElementById("syncInfo"); if(si2) si2.textContent="PX Team Dashboard-2027 · Coming next phase — no data yet";
-    renderAtt(); renderSail(); renderOvrLog(); save();
+    renderAtt(); renderSailorCriteria(); renderOvrLog(); save();
     return;
   }
-  populateMonthSelect(); refreshChipsSail();
+  populateMonthSelect();
   buildTeamMs();
   refreshMatrix(); renderAtt();
-  renderSail();
+  renderSailorCriteria();
   renderOvrLog();
   save();
  }catch(e){ console.error(e);}
