@@ -329,13 +329,15 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <div class="panel">
     <div class="panel-h">
       <h3>Sailor's Report — Criteria <span id="sailCritMonthLbl">Jun-2026</span></h3>
-      <span class="hint">criteria list from the sheet, in sheet order · values to be added later</span>
+      <span class="hint">criteria list from the sheet, in sheet order · Late Check-in calculated from Attendance Summary (Total Late) · other criteria to follow</span>
     </div>
     <div class="tblwrap">
       <table id="sailCritTbl">
         <thead><tr>
           <th style="width:40px">#</th>
           <th>Criteria</th>
+          <th>Name</th>
+          <th style="text-align:right">Days</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -1062,14 +1064,42 @@ function buildSailorCriteriaOnly(rows){
   }
   return out;
 }
+function computeLateCheckinCriterion(month){
+  const idx = MATRIX.idx.get(month);
+  if(!idx) return [];
+  const out=[];
+  for(const [id,r] of idx.entries()){
+    const team = r.team || MATRIX.roster.get(id)?.team || "";
+    if(/^support staff$/i.test(team)) continue;
+    if(!isOnsite({perks:r.perks, team})) continue;
+    if(r.late==null || r.late<=3) continue;
+    const name = r.name || MATRIX.roster.get(id)?.name || id;
+    out.push({name, days:r.late});
+  }
+  out.sort((a,b)=> b.days-a.days || a.name.localeCompare(b.name));
+  return out;
+}
 function renderSailorCriteria(){
   const rows=DATA.sailorCriteriaOnly||[];
   const tb=document.querySelector("#sailCritTbl tbody");
   if(!rows.length){
-    tb.innerHTML = `<tr><td colspan="2" class="empty-state">No criteria yet — click Sync to load Jun-2026.</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="4" class="empty-state">No criteria yet — click Sync to load Jun-2026.</td></tr>`;
     return;
   }
-  tb.innerHTML = rows.map(r=>`<tr><td>${r.no}</td><td>${esc(r.criteria)}</td></tr>`).join("");
+  const lateData = computeLateCheckinCriterion("June");
+  tb.innerHTML = rows.map(r=>{
+    const isLateCriterion = /^Late Check in Count/i.test(r.criteria);
+    let nameCell="—", daysCell="—";
+    if(isLateCriterion){
+      if(lateData.length){
+        nameCell = lateData.map(e=>esc(e.name)).join("<br>");
+        daysCell = lateData.map(e=>e.days).join("<br>");
+      } else {
+        nameCell = `<span class="none-txt">No one over 3 late days</span>`;
+      }
+    }
+    return `<tr><td>${r.no}</td><td>${esc(r.criteria)}</td><td>${nameCell}</td><td style="text-align:right">${daysCell}</td></tr>`;
+  }).join("");
 }
 
 
