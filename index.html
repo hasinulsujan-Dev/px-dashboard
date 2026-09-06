@@ -1106,7 +1106,7 @@ function getSailorCriteriaList(){
   const src = (OVR.sailorCriteria && OVR.sailorCriteria.length) ? OVR.sailorCriteria : SAILOR_CRITERIA_DEFAULT;
   return src.map((c,i)=>({no:i+1, key:c.key||null, criteria:c.criteria}));
 }
-function computeOnsiteThresholdCriterion(month, field, threshold){
+function computeOnsiteThresholdCriterion(month, field, threshold, opts={}){
   const idx = MATRIX.idx.get(month);
   if(!idx) return [];
   const out=[];
@@ -1114,6 +1114,7 @@ function computeOnsiteThresholdCriterion(month, field, threshold){
     const team = r.team || MATRIX.roster.get(id)?.team || "";
     if(/^support staff$/i.test(team)) continue;
     if(!isOnsite({perks:r.perks, team})) continue;
+    if(opts.excludeBkash && /^bkash$/i.test(team)) continue;
     const v = r[field];
     if(v==null || v<=threshold) continue;
     const name = r.name || MATRIX.roster.get(id)?.name || id;
@@ -1122,7 +1123,7 @@ function computeOnsiteThresholdCriterion(month, field, threshold){
   out.sort((a,b)=> b.days-a.days || a.name.localeCompare(b.name));
   return out;
 }
-function computeAvgHoursCriterion(month, mode){
+function computeAvgHoursCriterion(month, mode, opts={}){
   // mode "lt9": average daily office hours below 9h; "gt9": above 9h
   const idx = MATRIX.idx.get(month);
   if(!idx) return [];
@@ -1131,6 +1132,7 @@ function computeAvgHoursCriterion(month, mode){
     const team = r.team || MATRIX.roster.get(id)?.team || "";
     if(/^support staff$/i.test(team)) continue;
     if(!isOnsite({perks:r.perks, team})) continue;
+    if(opts.excludeBkash && /^bkash$/i.test(team)) continue;
     if(r.avg==null) continue;
     if(mode==="lt9" ? !(r.avg<9) : !(r.avg>9)) continue;
     const name = r.name || MATRIX.roster.get(id)?.name || id;
@@ -1140,11 +1142,11 @@ function computeAvgHoursCriterion(month, mode){
   return out;
 }
 const SAILOR_COMPUTED = {
-  late: month => computeOnsiteThresholdCriterion(month, "late", 3).map(e=>({name:e.name, value:String(e.days)})),
-  partial: month => computeOnsiteThresholdCriterion(month, "b8", 3).map(e=>({name:e.name, value:String(e.days)})),
-  early: month => computeOnsiteThresholdCriterion(month, "eco", 3).map(e=>({name:e.name, value:String(e.days)})),
-  avg_lt9: month => computeAvgHoursCriterion(month, "lt9"),
-  avg_gt9: month => computeAvgHoursCriterion(month, "gt9"),
+  late: month => computeOnsiteThresholdCriterion(month, "late", 3, {excludeBkash:true}).map(e=>({name:e.name, value:String(e.days)})),
+  partial: month => computeOnsiteThresholdCriterion(month, "b8", 3, {excludeBkash:true}).map(e=>({name:e.name, value:String(e.days)})),
+  early: month => computeOnsiteThresholdCriterion(month, "eco", 3, {excludeBkash:true}).map(e=>({name:e.name, value:String(e.days)})),
+  avg_lt9: month => computeAvgHoursCriterion(month, "lt9", {excludeBkash:true}),
+  avg_gt9: month => computeAvgHoursCriterion(month, "gt9", {excludeBkash:true}),
 };
 function getManualEntries(month, key){
   return (OVR.sailorManualEntries?.[month]?.[key]) || [];
