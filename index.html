@@ -329,7 +329,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <div class="panel">
     <div class="panel-h">
       <h3>Sailor's Report — Criteria <span id="sailCritMonthLbl">Jun-2026</span></h3>
-      <span class="hint">criteria across the top (hover a header for full text) · employees down the side · Late Check-in &amp; Partial Attendance calculated from Attendance Summary (Total Late / Less than 8 Hours) · other criteria to follow</span>
+      <span class="hint">criteria across the top (hover a header for full text) · employees down the side · Late Check-in, Partial Attendance &amp; Early Check Out calculated from Attendance Summary · other criteria to follow</span>
     </div>
     <div class="tblwrap">
       <table id="sailCritTbl">
@@ -1078,6 +1078,7 @@ function computeOnsiteThresholdCriterion(month, field, threshold){
 const SAILOR_CALCULATORS = [
   { match: /^Late Check in Count/i, compute: month => computeOnsiteThresholdCriterion(month, "late", 3).map(e=>({name:e.name, value:String(e.days)})) },
   { match: /^Partial Attendance Count/i, compute: month => computeOnsiteThresholdCriterion(month, "b8", 3).map(e=>({name:e.name, value:String(e.days)})) },
+  { match: /^Early Check Out/i, compute: month => computeOnsiteThresholdCriterion(month, "eco", 3).map(e=>({name:e.name, value:String(e.days)})) },
 ];
 function renderSailorCriteria(){
   const criteria=DATA.sailorCriteriaOnly||[];
