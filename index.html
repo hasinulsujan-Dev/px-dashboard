@@ -329,16 +329,11 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <div class="panel">
     <div class="panel-h">
       <h3>Sailor's Report — Criteria <span id="sailCritMonthLbl">Jun-2026</span></h3>
-      <span class="hint">criteria list from the sheet, in sheet order · Late Check-in calculated from Attendance Summary (Total Late) · other criteria to follow</span>
+      <span class="hint">criteria across the top (hover a header for full text) · employees down the side · Late Check-in calculated from Attendance Summary (Total Late) · other criteria to follow</span>
     </div>
     <div class="tblwrap">
       <table id="sailCritTbl">
-        <thead><tr>
-          <th style="width:40px">#</th>
-          <th>Criteria</th>
-          <th>Name</th>
-          <th style="text-align:right">Days</th>
-        </tr></thead>
+        <thead></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -1079,27 +1074,39 @@ function computeLateCheckinCriterion(month){
   out.sort((a,b)=> b.days-a.days || a.name.localeCompare(b.name));
   return out;
 }
+const SAILOR_CALCULATORS = [
+  { match: /^Late Check in Count/i, compute: month => computeLateCheckinCriterion(month).map(e=>({name:e.name, value:String(e.days)})) },
+];
 function renderSailorCriteria(){
-  const rows=DATA.sailorCriteriaOnly||[];
-  const tb=document.querySelector("#sailCritTbl tbody");
-  if(!rows.length){
-    tb.innerHTML = `<tr><td colspan="4" class="empty-state">No criteria yet — click Sync to load Jun-2026.</td></tr>`;
+  const criteria=DATA.sailorCriteriaOnly||[];
+  const thead=document.querySelector("#sailCritTbl thead");
+  const tbody=document.querySelector("#sailCritTbl tbody");
+  if(!criteria.length){
+    thead.innerHTML="";
+    tbody.innerHTML = `<tr><td class="empty-state">No criteria yet — click Sync to load Jun-2026.</td></tr>`;
     return;
   }
-  const lateData = computeLateCheckinCriterion("June");
-  tb.innerHTML = rows.map(r=>{
-    const isLateCriterion = /^Late Check in Count/i.test(r.criteria);
-    let nameCell="—", daysCell="—";
-    if(isLateCriterion){
-      if(lateData.length){
-        nameCell = lateData.map(e=>esc(e.name)).join("<br>");
-        daysCell = lateData.map(e=>e.days).join("<br>");
-      } else {
-        nameCell = `<span class="none-txt">No one over 3 late days</span>`;
-      }
-    }
-    return `<tr><td>${r.no}</td><td>${esc(r.criteria)}</td><td>${nameCell}</td><td style="text-align:right">${daysCell}</td></tr>`;
-  }).join("");
+  const valueMaps = criteria.map(c=>{
+    const calc = SAILOR_CALCULATORS.find(x=>x.match.test(c.criteria));
+    return calc ? new Map(calc.compute("June").map(e=>[e.name, e.value])) : new Map();
+  });
+  const allNames = new Set();
+  valueMaps.forEach(m=>m.forEach((v,name)=>allNames.add(name)));
+  const names=[...allNames].sort((a,b)=>a.localeCompare(b));
+
+  thead.innerHTML = `<tr>
+    <th style="position:sticky;left:0;z-index:3;min-width:180px">Employee</th>
+    ${criteria.map(c=>`<th title="${esc(c.criteria)}" style="min-width:170px;max-width:220px;white-space:normal;text-align:center;vertical-align:bottom">${esc(c.criteria)}</th>`).join("")}
+  </tr>`;
+
+  if(!names.length){
+    tbody.innerHTML = `<tr><td colspan="${criteria.length+1}" class="empty-state">No calculated criteria yet for Jun-2026.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = names.map(name=>`<tr>
+    <td style="position:sticky;left:0;background:var(--card);font-weight:600">${esc(name)}</td>
+    ${valueMaps.map(m=>`<td style="text-align:center">${m.has(name)?esc(m.get(name)):"—"}</td>`).join("")}
+  </tr>`).join("");
 }
 
 
