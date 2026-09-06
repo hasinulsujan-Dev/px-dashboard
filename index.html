@@ -20,6 +20,7 @@ body.light{
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
+html,body{max-width:100%;overflow-x:hidden}
 body{background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
 ::selection{background:rgba(91,140,255,.35)}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
@@ -53,7 +54,7 @@ body.light .theme-toggle .label .off{display:inline}
 .side-tab.on{color:var(--txt);background:var(--card2);border-color:var(--line)}
 .side-tab .cnt{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:0 7px;font-size:11px;color:var(--mut);margin-left:auto}
 
-main{max-width:1280px;margin:0 auto;padding:26px 24px 80px}
+main{padding:26px 24px 80px;min-width:0;width:100%}
 .view{display:none}.view.on{display:block;animation:fade .25s ease}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
@@ -75,7 +76,7 @@ main{max-width:1280px;margin:0 auto;padding:26px 24px 80px}
 .btn.danger:hover{color:var(--bad);border-color:var(--bad)}
 
 /* ---------- KPI ---------- */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:20px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:14px;margin-bottom:20px}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
 .kpi::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--kc,var(--acc))}
 .kpi .lbl{font-size:11.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)}
@@ -507,6 +508,7 @@ function applyYearChrome(){
 function populateMonthSelect(){ const sel=document.getElementById("attMonthSel"); if(!sel) return; [...sel.options].forEach(o=>o.textContent=shortYearLabel(o.value)); }
 
 const ALL_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+function getPreviousMonthName(){ return ALL_MONTHS[(new Date().getMonth()-1+12)%12]; }
 function fmtDuration(h){ if(h==null) return "—"; const sec=Math.round(h*3600); const hh=String(Math.floor(sec/3600)).padStart(2,"0"); const mm=String(Math.floor((sec%3600)/60)).padStart(2,"0"); const ss=String(sec%60).padStart(2,"0"); return `${hh}:${mm}:${ss}`; }
 
 function buildMatrix(){
@@ -521,7 +523,7 @@ let MATRIX={ms:[],roster:new Map(),idx:new Map()};
 function refreshMatrix(){ MATRIX=buildMatrix(); }
 
 function renderSummary(){
-  const mSel = document.getElementById("attMonthSel").value || "January";
+  const mSel = document.getElementById("attMonthSel").value || getPreviousMonthName();
   document.getElementById("summaryMonthLabel").textContent = shortYearLabel(mSel);
   const q=document.getElementById('q')?.value.trim().toLowerCase() || "";
   const statusF=document.getElementById('statusSel')?.value || "";
@@ -618,7 +620,7 @@ function attDailyFor(month){
   return daily;
 }
 function renderAtt(){
-  const mSel = document.getElementById("attMonthSel").value || "January";
+  const mSel = document.getElementById("attMonthSel").value || getPreviousMonthName();
   document.getElementById("attMonthLabel").textContent = shortYearLabel(mSel);
   renderSummary();
   const q=$("#q").value.trim().toLowerCase();
@@ -1168,7 +1170,7 @@ function getCriterionValues(month, key){
   if(SAILOR_COMPUTED[key]) return SAILOR_COMPUTED[key](month);
   return getManualEntries(month, key).map(e=>({name:e.name, value:e.value}));
 }
-let sailReportMonth = "June";
+let sailReportMonth = getPreviousMonthName();
 function onSailReportMonthChange(){
   sailReportMonth = document.getElementById("sailReportMonthSel").value;
   renderSailorCriteria();
@@ -1341,10 +1343,12 @@ function onManualEntryCritChange(){ manEntryKey=document.getElementById("manCrit
     DATA.months=[]; DATA.daily={};
     const pill=document.getElementById("syncPill"); if(pill){ pill.className="badge b-mut"; pill.textContent="● 2027 stub"; pill.disabled=true; }
     const si2=document.getElementById("syncInfo"); if(si2) si2.textContent="PX Team Dashboard-2027 · Coming next phase — no data yet";
+    const attSel2027=document.getElementById("attMonthSel"); if(attSel2027) attSel2027.value=getPreviousMonthName();
     renderAtt(); renderSailorCriteria(); renderManualEntryEditor(); renderOvrLog(); save();
     return;
   }
   populateMonthSelect();
+  const attSel=document.getElementById("attMonthSel"); if(attSel) attSel.value=getPreviousMonthName();
   buildTeamMs();
   refreshMatrix(); renderAtt();
   renderSailorCriteria();
