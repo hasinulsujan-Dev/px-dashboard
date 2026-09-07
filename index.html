@@ -427,7 +427,10 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
         </h3>
         <span class="hint">people flagged across 2 or more months · one card per person, with the criteria, values &amp; months involved</span>
       </div>
-      <input type="text" id="sailorRepeatSearch" list="employeeNamesDatalist" placeholder="Search a name…" oninput="filterSailorRepeatCards()" autocomplete="off" style="width:220px;height:34px;flex:none">
+      <div style="display:flex;gap:6px;flex:none">
+        <input type="text" id="sailorRepeatSearch" list="employeeNamesDatalist" placeholder="Search a name…" oninput="filterSailorRepeatCards()" autocomplete="off" style="width:220px;height:34px;flex:none">
+        <button class="btn" onclick="refreshSailorRepeatCards()" title="Refresh the list" style="width:34px;height:34px;padding:0;justify-content:center;font-size:15px">↻</button>
+      </div>
     </div>
     <div id="sailorRepeatCards" style="display:none;flex-direction:column;gap:16px;padding:16px"></div>
     <div id="sailorRepeatNoMatch" class="empty-state" style="padding:20px;display:none">No repeat-flagged person matches that search.</div>
@@ -1319,6 +1322,12 @@ function filterSailorRepeatCards(){
     if(match) visible++;
   });
   if(noMatch) noMatch.style.display = (cards.length && !visible) ? "" : "none";
+}
+function refreshSailorRepeatCards(){
+  const search = document.getElementById("sailorRepeatSearch");
+  if(search) search.value = "";
+  renderSailorMatrix();
+  toast("Repeat Flags refreshed");
 }
 
 /* ---- criteria editor (titles only; calculated columns stay linked by key) ---- */
