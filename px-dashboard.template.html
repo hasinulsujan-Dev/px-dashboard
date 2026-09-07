@@ -542,9 +542,9 @@ function selectReport(key){
 function buildTeamMs(){
   const menu=document.getElementById("teamMsMenu"); const btn=document.getElementById("teamMsBtn");
   if(!menu||!btn) return;
-  const teams=[...new Set(Object.values(DATA.employees).flat().map(e=>e.team).filter(Boolean).filter(team=>!/^support staff$/i.test(team)))].sort().filter((v,i,a)=>a.indexOf(v)===i);
+  const teams=[...new Set(Object.values(DATA.employees).flat().map(e=>e.team).filter(Boolean).filter(team=>!isExcludedTeam(team)))].sort().filter((v,i,a)=>a.indexOf(v)===i);
   // Also include any from roster
-  for(const prof of Object.values(DATA.profiles||{})){ if(prof.team && !/^support staff$/i.test(prof.team) && !teams.includes(prof.team)) teams.push(prof.team); }
+  for(const prof of Object.values(DATA.profiles||{})){ if(prof.team && !isExcludedTeam(prof.team) && !teams.includes(prof.team)) teams.push(prof.team); }
   teams.sort();
   menu.innerHTML = teams.map(team=>`
     <label class="ms-item"><input type="checkbox" value="${team.replace(/"/g,'&quot;')}" ${teamSelection.has(team)?'checked':''} onchange="onTeamCheck(this)"> ${team}</label>
@@ -572,6 +572,9 @@ const initials = n => n.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).joi
 const fmtHrs = h => h==null ? "—" : (Math.floor(h)+"h "+String(Math.round((h%1)*60)).padStart(2,"0")+"m");
 const fmtClock = m => m==null ? "" : String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
 const isOnsite = e => !/remote/i.test((e.perks||"")+(e.team||""));
+// Support Staff (any variant, e.g. "Support Staff Cleaner") and Temporary team members
+// are excluded from all attendance/sailor's-report calculations and displays.
+const isExcludedTeam = team => /^support staff/i.test(team||"") || /^temporary/i.test(team||"");
 
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),2200); }
 
@@ -686,7 +689,7 @@ function renderSummary(){
   const idxFiltered = dailyFilteredIds.size ? new Map([...idx0.entries()].filter(([id])=>dailyFilteredIds.has(id))) : idx0;
   const idx = idxFiltered;
   if(!idx){ document.querySelector("#summaryTbl tbody").innerHTML=`<tr><td colspan="10" class="empty-state">No data for ${mSel}</td></tr>`; document.getElementById("summaryHint").textContent=""; return; }
-  const entries = [...idx.entries()].filter(([id,r])=>!/^support staff$/i.test(r.team||"") && !/^support staff$/i.test(MATRIX.roster.get(id)?.team||"")).map(([id,r])=>({id, r, p: MATRIX.roster.get(id)}));
+  const entries = [...idx.entries()].filter(([id,r])=>!isExcludedTeam(r.team||"") && !isExcludedTeam(MATRIX.roster.get(id)?.team||"")).map(([id,r])=>({id, r, p: MATRIX.roster.get(id)}));
   const dir = summaryDir;
   entries.sort((a,b)=>{
     let va, vb;
@@ -795,7 +798,7 @@ function renderAtt(){
   }
   // Filters — Support Staff excluded for Monthly Attendance & Summary for all months
   rows = rows.filter(r=>{
-    if(/^support staff$/i.test(r.team||"")) return false;
+    if(isExcludedTeam(r.team||"")) return false;
     if(onsite && !isOnsite({perks:r.perks,team:r.team})) return false;
     if(teamSelection.size && !teamSelection.has(r.team)) return false;
     if(statusF && r.status!==statusF) return false;
@@ -841,7 +844,7 @@ function renderAtt(){
   const daysInMonth = new Date(2026, monthIdx+1, 0).getDate();
   let wdCount = 0;
   for(let d=1; d<=daysInMonth; d++){ const dow=new Date(2026, monthIdx, d).getDay(); if(dow!==5 && dow!==6) wdCount++; }
-  const rosterCount = [...MATRIX.roster.keys()].filter(id=>!/^support staff$/i.test(MATRIX.roster.get(id)?.team||"") && !/^support staff$/i.test(MATRIX.idx.get(mSel)?.get(id)?.team||"")).length;
+  const rosterCount = [...MATRIX.roster.keys()].filter(id=>!isExcludedTeam(MATRIX.roster.get(id)?.team||"") && !isExcludedTeam(MATRIX.idx.get(mSel)?.get(id)?.team||"")).length;
   $("#kpis").innerHTML=[["Total Employees",`${rosterCount}`,"unique roster head count (ex Support Staff)","var(--acc)","rgba(91,140,255,.12)","👥"],["Weekdays",wdCount,"calendar working days (Fri–Sat as weekends)","var(--ok)","var(--okbg)","✓"],["Attendance",uniqueAtt,"unique attendees in month","var(--warn)","var(--warnbg)","⏰"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
   $("#tblHint").textContent = distinct + " employees · " + rows.length + " rows · " + shortYearLabel(mSel);
   if(!rows.length){ tb.innerHTML=`<tr><td colspan="14" class="empty-state">No rows for ${mSel} with current filters</td></tr>`; return; }
@@ -1103,7 +1106,7 @@ function computeOnsiteThresholdCriterion(month, field, threshold, opts={}){
   const out=[];
   for(const [id,r] of idx.entries()){
     const team = r.team || MATRIX.roster.get(id)?.team || "";
-    if(/^support staff$/i.test(team)) continue;
+    if(isExcludedTeam(team)) continue;
     if(!isOnsite({perks:r.perks, team})) continue;
     if(opts.excludeBkash && /^bkash$/i.test(team)) continue;
     const v = r[field];
@@ -1121,7 +1124,7 @@ function computeAvgHoursCriterion(month, mode, opts={}){
   const out=[];
   for(const [id,r] of idx.entries()){
     const team = r.team || MATRIX.roster.get(id)?.team || "";
-    if(/^support staff$/i.test(team)) continue;
+    if(isExcludedTeam(team)) continue;
     if(!isOnsite({perks:r.perks, team})) continue;
     if(opts.excludeBkash && /^bkash$/i.test(team)) continue;
     if(r.avg==null) continue;
@@ -1463,7 +1466,7 @@ function onManualEntryCritChange(){ manEntryKey=document.getElementById("manCrit
   applyYearChrome();
   if(YEAR==="2027"){
     // 2027 stub: no 2026 data fetch, render empty 14-col shells
-    const teams=[...new Set(Object.values(DATA.employees).flat().map(e=>e.team).filter(Boolean).filter(team=>!/^support staff$/i.test(team)))].sort().filter((v,i,a)=>a.indexOf(v)===i);
+    const teams=[...new Set(Object.values(DATA.employees).flat().map(e=>e.team).filter(Boolean).filter(team=>!isExcludedTeam(team)))].sort().filter((v,i,a)=>a.indexOf(v)===i);
     // build empty matrix for 2027 (all months empty) so Summary/Attendance render their empty states with Jan-2027 labels
     MATRIX={ms:[],roster:new Map(),idx:new Map()}; ALL_MONTHS.forEach(m=>MATRIX.idx.set(m,new Map()));
     DATA.months=[]; DATA.daily={};
