@@ -202,9 +202,15 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 .dd-item.on{background:var(--card2);color:var(--acc)}
 
 /* ---------- sidebar (year pages) ---------- */
-.layout{display:grid;grid-template-columns:220px 1fr;gap:0;max-width:1500px;margin:0 auto}
-.sidebar{position:sticky;top:53px;align-self:start;height:calc(100vh - 53px);padding:18px 14px;border-right:1px solid var(--line);background:color-mix(in srgb,var(--bg) 94%,transparent);overflow-y:auto}
-.sidebar h2{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--mut);font-weight:700;margin:0 0 10px 6px}
+.layout{display:grid;grid-template-columns:220px 1fr;gap:0;max-width:1500px;margin:0 auto;transition:grid-template-columns .18s}
+.sidebar{position:sticky;top:53px;align-self:start;height:calc(100vh - 53px);padding:18px 14px;border-right:1px solid var(--line);background:color-mix(in srgb,var(--bg) 94%,transparent);overflow:visible}
+.sidebar-content{height:100%;overflow-y:auto;overflow-x:hidden}
+.sidebar-toggle{position:absolute;top:24px;right:-14px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--acc);border:3px solid var(--bg);color:#fff;cursor:pointer;z-index:5;box-shadow:var(--shadow)}
+.sidebar-toggle:hover{background:var(--acc2)}
+.sidebar-toggle .arrow{display:inline-block;font-size:11px;line-height:1;transition:transform .18s}
+.layout.sidebar-collapsed{grid-template-columns:52px 1fr}
+.layout.sidebar-collapsed .sidebar-content{display:none}
+.layout.sidebar-collapsed .sidebar-toggle .arrow{transform:rotate(180deg)}
 .years{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .years a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid transparent;color:var(--mut);font-weight:700;font-size:13px;text-decoration:none;transition:border .15s,background .15s,color .15s}
 .years a .dot{width:7px;height:7px;border-radius:50%;background:var(--mut);opacity:0.9}
@@ -215,7 +221,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 .years a.stub:hover{border-color:transparent;background:none;color:var(--mut)}
 .years a.stub .badge{margin-left:auto;font-size:10px;padding:1px 6px}
 .foot-note{margin-top:18px;font-size:11px;color:var(--dim);line-height:1.5;padding:0 6px}
-@media(max-width:900px){ .layout{grid-template-columns:1fr} .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)} }
+@media(max-width:900px){ .layout{grid-template-columns:1fr} .layout.sidebar-collapsed{grid-template-columns:1fr} .sidebar{position:relative;height:auto;border-right:none;border-bottom:1px solid var(--line)} .sidebar-toggle{right:14px} }
 </style>
 </head>
 <body>
@@ -239,7 +245,8 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 
 <div class="layout">
 <aside class="sidebar" aria-label="Year pages">
-  <h2>Year</h2>
+  <button class="sidebar-toggle" id="sidebarToggleBtn" onclick="toggleSidebarCollapse()" title="Collapse/expand sidebar"><span class="arrow">◀</span></button>
+  <div class="sidebar-content">
   <nav class="years">
     <a id="year2026" class="active" href="?year=2026" aria-current="page" onclick="return toggleYear2026(event)"><span class="dot"></span><span style="flex:1">PX Team-2026</span><span class="chev" id="year2026Chev">▾</span></a>
     <div class="year-subnav" id="year2026Sub">
@@ -254,6 +261,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   </nav>
   <p class="foot-note">2026 Attendance is a periodic snapshot from the <em>ZKTeco BioTime API</em>; Sailor's Report is still live from Google Sheets. 2027 is a separate page (Phase 2, empty shell for now).</p>
   <div id="yearStubBanner" style="display:none;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card2);font-size:12px;color:var(--mut);line-height:1.5">PX Team Dashboard-2027 is not yet live. This is an empty 14-col shell (no 2026 data fetched). Coming next phase.</div>
+  </div>
 </aside>
 
 <main>
@@ -603,6 +611,13 @@ function toggleYear2026(e){
 function toggleTheme(){
   document.body.classList.toggle("light");
   localStorage.setItem("pxdash-theme", document.body.classList.contains("light")?"light":"dark");
+}
+function toggleSidebarCollapse(){
+  const layout = document.querySelector(".layout");
+  if(!layout) return;
+  const collapsed = layout.classList.toggle("sidebar-collapsed");
+  const btn = document.getElementById("sidebarToggleBtn");
+  if(btn) btn.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
 }
 if(localStorage.getItem("pxdash-theme")==="light") document.body.classList.add("light");
 
