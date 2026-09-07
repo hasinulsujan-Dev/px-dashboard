@@ -369,18 +369,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     <div class="spacer"></div>
     <button class="btn danger" onclick="resetOverrides()">↺ Reset all manual edits</button>
   </div>
-  <div class="kpis">
-    <div class="kpi" style="--kc:var(--info);--kb:var(--infobg)"><span class="lbl">Manual edits</span><span class="val" id="dbCount">0</span><span class="sub">stored in this browser</span></div>
-    <div class="kpi" style="--kc:var(--ok);--kb:var(--okbg)"><span class="lbl">Sync source</span><span class="val" style="font-size:15px;line-height:38px">ZKTeco + Sheets</span><span class="sub">Attendance: ZKTeco snapshot · Sailor's Report: Google Sheets</span></div>
-  </div>
   <div class="panel">
-    <div class="panel-h"><h3>Override log</h3></div>
-    <div class="tblwrap" style="max-height:50vh"><table>
-      <thead><tr><th>Type</th><th>Target</th><th>Field</th><th>Value</th><th></th></tr></thead>
-      <tbody id="ovrBody"><tr><td colspan="5" class="empty-state">No manual edits yet.<p>Edit values from the Attendance table (row menu) or Sailor's Report (+ Add).</p></td></tr></tbody>
-    </table></div>
-  </div>
-  <div class="panel" style="margin-top:16px">
     <div class="panel-h">
       <h3>Sailor's Raw— Manual Entries</h3>
       <span class="hint">for criteria not auto-computed from Attendance · pick a month &amp; criterion, then add name/value entries</span>
@@ -392,7 +381,8 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
       </div>
       <div id="manEntryList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
       <div style="display:flex;gap:8px">
-        <input type="text" id="manEntryName" placeholder="Name / description…" style="flex:1">
+        <input type="text" id="manEntryName" list="employeeNamesDatalist" placeholder="Name / description… (start typing to pick from roster)" style="flex:1" autocomplete="off">
+        <datalist id="employeeNamesDatalist"></datalist>
         <input type="text" id="manEntryValue" placeholder="count / note" style="width:160px">
         <button class="btn pri" onclick="addManualEntryFromForm()">+ Add</button>
       </div>
@@ -626,7 +616,13 @@ function buildMatrix(){
   return {ms,roster,idx};
 }
 let MATRIX={ms:[],roster:new Map(),idx:new Map()};
-function refreshMatrix(){ MATRIX=buildMatrix(); }
+function refreshMatrix(){ MATRIX=buildMatrix(); populateEmployeeNamesDatalist(); }
+function populateEmployeeNamesDatalist(){
+  const dl=document.getElementById("employeeNamesDatalist");
+  if(!dl) return;
+  const names=[...new Set([...MATRIX.roster.values()].map(p=>p.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  dl.innerHTML = names.map(n=>`<option value="${esc(n)}"></option>`).join("");
+}
 
 function renderSummary(){
   const mSel = document.getElementById("attMonthSel").value || getPreviousMonthName();
@@ -916,32 +912,8 @@ function clearEmp(id,month){ delete OVR.att[id+"@"+month]; save(); renderAtt(); 
 
 /* ============ overrides log ============ */
 function renderOvrLog(){
-  $("#dbCount").textContent = String(ovrTotal());
-  const tb=$("#ovrBody");
-  const items=[];
-  Object.entries(OVR.att||{}).forEach(([k,o])=>{
-    const [id,month]=k.split("@");
-    const nm=DATA.profiles[id]?.name||id;
-    Object.entries(o).forEach(([f,v])=>items.push(["Attendance",`${nm} · ${month}`,f,v,id,month]));
-  });
-  Object.entries(OVR.sail||{}).forEach(([k,arr])=>{
-    const [month,ci]=k.split("#");
-    const crit=DATA.sailorCriteria[+ci]?.c||ci;
-    arr.forEach(e=>items.push(["Sailor's",`${crit} · ${month}`,e.n,e.v]));
-  });
-  const critByKey = new Map(getSailorCriteriaList().map(c=>[c.key,c.criteria]));
-  Object.entries(OVR.sailorManualEntries||{}).forEach(([month,byKey])=>{
-    Object.entries(byKey||{}).forEach(([key,arr])=>{
-      const crit = critByKey.get(key)||key;
-      arr.forEach(e=>items.push(["Sailor's",`${crit} · ${shortYearLabel(month)}`,e.name,e.value]));
-    });
-  });
-  if(!items.length){tb.innerHTML=`<tr><td colspan="5" class="empty-state">No manual edits yet.<p>Edit values from the Attendance table (employee popup) or Sailor's Report (+ Add).</p></td></tr>`;return;}
-  tb.innerHTML=items.map(it=>`<tr>
-    <td><span class="badge ${it[0]==="Attendance"?"b-info":"t-acc badge"}" style="${it[0]!=="Attendance"?"background:var(--warnbg);color:var(--warn)":""}">${it[0]}</span></td>
-    <td>${esc(it[1])}</td><td style="color:var(--mut)">${esc(String(it[2]))}</td><td><b>${esc(String(it[3]))}</b></td>
-    <td>${it[4]?`<button class="btn" style="height:26px;padding:0 10px" onclick="clearEmp('${esc(it[4])}','${it[5]}')">revert</button>`:""}</td>
-  </tr>`).join("");
+  // Override log panel removed from Data Editor; the sidebar edit-count badge
+  // (#ovrCount) is still kept in sync by save(), so this is a no-op now.
 }
 function resetOverrides(){
   if(!confirm("Remove ALL manual edits and restore sheet values?"))return;
