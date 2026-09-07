@@ -404,7 +404,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     <div class="panel-h">
       <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
         <h3 style="white-space:nowrap">Month-to-Month Comparison</h3>
-        <span class="hint">criteria down the side, months across the top · every flagged name &amp; value shown · names highlighted in red repeat across 2+ months for that criterion</span>
+        <span class="hint">criteria down the side, months across the top · every flagged name &amp; value shown</span>
       </div>
     </div>
     <div class="tblwrap">
@@ -1189,25 +1189,21 @@ function renderSailorReport(){
 
 /* ---- Month-to-Month Comparison matrix: criteria rows x month columns ---- */
 const SAILOR_MATRIX_MONTHS = ALL_MONTHS;
-function sailorCountStyle(n){
-  if(!n) return "color:var(--dim)";
-  if(n<=2) return "color:var(--warn)";
-  if(n<=5) return "color:var(--warn);font-weight:800";
-  return "color:#ef4444;font-weight:800";
-}
+const SAILOR_COL_BORDER = "border-left:1px solid var(--line)";
 function renderSailorMatrix(){
   const thead=document.querySelector("#sailorMatrixTbl thead tr");
   const tbody=document.querySelector("#sailorMatrixTbl tbody");
   if(!thead || !tbody) return;
   const criteria=getSailorCriteriaList();
   const months=SAILOR_MATRIX_MONTHS;
-  thead.innerHTML = `<th style="position:sticky;left:0;z-index:3;width:110px;max-width:110px;background:var(--card2);text-align:left;white-space:normal;padding:8px 8px">Criteria</th>`
-    + months.map(m=>`<th style="min-width:132px;max-width:132px;text-align:left;padding:8px 6px">${esc(shortYearLabel(m))}</th>`).join("");
+  thead.innerHTML = `<th style="position:-webkit-sticky;position:sticky;left:0;z-index:3;width:110px;max-width:110px;background:var(--card2);text-align:left;white-space:normal;padding:8px 8px;border-right:2px solid var(--line);will-change:transform">Criteria</th>`
+    + months.map(m=>`<th style="min-width:132px;max-width:132px;text-align:left;padding:8px 6px;${SAILOR_COL_BORDER}">${esc(shortYearLabel(m))}</th>`).join("");
   if(!criteria.length){
     tbody.innerHTML = `<tr><td colspan="${months.length+1}" class="empty-state">No criteria defined.</td></tr>`;
     return;
   }
-  tbody.innerHTML = criteria.map(c=>{
+  tbody.innerHTML = criteria.map((c,i)=>{
+    const rowBg = i%2 ? "var(--bg2)" : "var(--card)";
     const perMonth = months.map(m=>getCriterionValues(m, c.key));
     // how many of the shown months this name shows up in, for this criterion — surfaces repeat offenders
     const monthCountByName = new Map();
@@ -1216,18 +1212,17 @@ function renderSailorMatrix(){
       entries.forEach(e=>{ if(!seen.has(e.name)){ seen.add(e.name); monthCountByName.set(e.name,(monthCountByName.get(e.name)||0)+1); } });
     });
     const cells = perMonth.map(entries=>{
-      if(!entries.length) return `<td style="vertical-align:top;color:var(--dim);padding:6px">—</td>`;
+      if(!entries.length) return `<td style="vertical-align:top;color:var(--dim);padding:6px;background:${rowBg};${SAILOR_COL_BORDER}">—</td>`;
       const badges = entries.map(e=>{
         const mc = monthCountByName.get(e.name)||1;
-        const repeat = mc>1;
-        return `<span class="badge ${repeat?"b-bad":"b-mut"}" style="padding:1px 6px;font-size:10px;white-space:normal" title="${repeat?`Flagged in ${mc} of the shown months for this criterion`:""}">${esc(e.name)} — ${esc(e.value)}</span>`;
+        return `<span class="badge" style="padding:1px 6px;font-size:10px;white-space:normal;background:rgba(91,140,255,.16);color:var(--acc);border:1px solid rgba(91,140,255,.3);font-weight:400" title="Flagged in ${mc} of the shown months for this criterion">${esc(e.name)} — ${esc(e.value)}</span>`;
       }).join("");
-      return `<td style="vertical-align:top;padding:6px">
-        <div style="font-size:10px;margin-bottom:3px;${sailorCountStyle(entries.length)}">${entries.length} flagged</div>
+      return `<td style="vertical-align:top;padding:6px;background:${rowBg};${SAILOR_COL_BORDER}">
+        <div style="font-size:10px;font-weight:400;margin-bottom:3px;color:var(--bad)">${entries.length} flagged</div>
         <div style="display:flex;flex-wrap:wrap;gap:3px">${badges}</div>
       </td>`;
     }).join("");
-    return `<tr><td style="position:sticky;left:0;background:var(--card);font-weight:600;width:110px;max-width:110px;white-space:normal;font-size:11px;line-height:1.3;vertical-align:top;padding:8px 8px">${esc(c.criteria)}</td>${cells}</tr>`;
+    return `<tr><td style="position:-webkit-sticky;position:sticky;left:0;z-index:1;background:${rowBg};font-weight:600;width:110px;max-width:110px;white-space:normal;font-size:11px;line-height:1.3;vertical-align:top;padding:8px 8px;border-right:2px solid var(--line);will-change:transform">${esc(c.criteria)}</td>${cells}</tr>`;
   }).join("");
 }
 
