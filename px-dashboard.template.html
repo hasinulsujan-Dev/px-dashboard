@@ -401,22 +401,30 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <!-- ================= SAILOR'S REPORT (Reports menu) ================= -->
 <section class="view" id="view-sailorreport">
   <div class="panel" style="margin-bottom:16px">
-    <div class="panel-h">
-      <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
-        <h3 style="white-space:nowrap">Repeat Flags <span class="badge b-info" id="sailorRepeatCount">0</span></h3>
+    <div class="panel-h" style="align-items:center;gap:12px">
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
+        <h3 style="white-space:nowrap;display:flex;align-items:center;gap:10px">
+          <span>Repeat Flags</span> <span class="badge b-info" id="sailorRepeatCount">0</span>
+          <button onclick="toggleSailorRepeatCollapse()" id="sailorRepeatChev" title="Expand/collapse" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);cursor:pointer;width:64px;height:44px;padding:0;border-radius:8px;transition:background .15s;display:inline-flex;align-items:center;justify-content:center"><span id="sailorRepeatChevIcon" style="font-size:32px;line-height:1;display:inline-block;transition:transform .15s;transform:rotate(-90deg)">▾</span></button>
+        </h3>
         <span class="hint">people flagged across 2 or more months · one card per person, with the criteria, values &amp; months involved</span>
       </div>
+      <input type="text" id="sailorRepeatSearch" list="employeeNamesDatalist" placeholder="Search a name…" oninput="filterSailorRepeatCards()" autocomplete="off" style="width:220px;height:34px;flex:none">
     </div>
-    <div id="sailorRepeatCards" style="display:flex;flex-direction:column;gap:16px;padding:16px"></div>
+    <div id="sailorRepeatCards" style="display:none;flex-direction:column;gap:16px;padding:16px"></div>
+    <div id="sailorRepeatNoMatch" class="empty-state" style="padding:20px;display:none">No repeat-flagged person matches that search.</div>
   </div>
   <div class="panel" style="margin-bottom:16px">
-    <div class="panel-h">
-      <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
-        <h3 style="white-space:nowrap">Month-to-Month Comparison</h3>
+    <div class="panel-h" style="align-items:center;gap:12px">
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
+        <h3 style="white-space:nowrap;display:flex;align-items:center;gap:10px">
+          <span>Month-to-Month Comparison</span>
+          <button onclick="toggleSailorMatrixCollapse()" id="sailorMatrixChev" title="Expand/collapse" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);cursor:pointer;width:64px;height:44px;padding:0;border-radius:8px;transition:background .15s;display:inline-flex;align-items:center;justify-content:center"><span id="sailorMatrixChevIcon" style="font-size:32px;line-height:1;display:inline-block;transition:transform .15s;transform:rotate(-90deg)">▾</span></button>
+        </h3>
         <span class="hint">criteria down the side, months across the top · every flagged name &amp; value shown</span>
       </div>
     </div>
-    <div class="tblwrap">
+    <div class="tblwrap" id="sailorMatrixWrap" style="display:none">
       <table id="sailorMatrixTbl">
         <thead><tr></tr></thead>
         <tbody></tbody>
@@ -1235,6 +1243,14 @@ function renderSailorMatrix(){
   }).join("");
   renderSailorRepeatCards(criteria, months);
 }
+let sailorMatrixCollapsed = true;
+function toggleSailorMatrixCollapse(){
+  sailorMatrixCollapsed = !sailorMatrixCollapsed;
+  const el = document.getElementById("sailorMatrixWrap");
+  const chevIcon = document.getElementById("sailorMatrixChevIcon");
+  if(chevIcon) chevIcon.style.transform = sailorMatrixCollapsed ? "rotate(-90deg)" : "rotate(0deg)";
+  if(el) el.style.display = sailorMatrixCollapsed ? "none" : "block";
+}
 function computeSailorRepeats(criteria, months){
   const byPerson = new Map(); // name -> { monthsSet:Set, byCriterion: Map(criteriaLabel -> [{month,value}]) }
   criteria.forEach(c=>{
@@ -1264,7 +1280,7 @@ function renderSailorRepeatCards(criteria, months){
     return;
   }
   wrap.innerHTML = repeats.map(p=>`
-    <div style="border:1px solid var(--line);border-radius:14px;padding:20px;background:var(--card2)">
+    <div data-name="${esc(p.name)}" style="border:1px solid var(--line);border-radius:14px;padding:20px;background:var(--card2)">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px">
         <b style="font-size:17px">${esc(p.name)}</b>
         <span class="badge" style="font-size:12px;padding:4px 12px;background:rgba(91,140,255,.16);color:var(--acc);border:1px solid rgba(91,140,255,.3);font-weight:400">${p.monthCount} months</span>
@@ -1279,6 +1295,31 @@ function renderSailorRepeatCards(criteria, months){
           </div>`).join("")}
       </div>
     </div>`).join("");
+  filterSailorRepeatCards();
+}
+let sailorRepeatCollapsed = true;
+function toggleSailorRepeatCollapse(){
+  sailorRepeatCollapsed = !sailorRepeatCollapsed;
+  const el = document.getElementById("sailorRepeatCards");
+  const noMatch = document.getElementById("sailorRepeatNoMatch");
+  const chevIcon = document.getElementById("sailorRepeatChevIcon");
+  if(chevIcon) chevIcon.style.transform = sailorRepeatCollapsed ? "rotate(-90deg)" : "rotate(0deg)";
+  if(el) el.style.display = sailorRepeatCollapsed ? "none" : "flex";
+  if(noMatch && sailorRepeatCollapsed) noMatch.style.display = "none";
+  else filterSailorRepeatCards();
+}
+function filterSailorRepeatCards(){
+  const noMatch = document.getElementById("sailorRepeatNoMatch");
+  if(sailorRepeatCollapsed){ if(noMatch) noMatch.style.display = "none"; return; }
+  const q = (document.getElementById("sailorRepeatSearch")?.value||"").trim().toLowerCase();
+  const cards = [...document.querySelectorAll("#sailorRepeatCards > div[data-name]")];
+  let visible = 0;
+  cards.forEach(card=>{
+    const match = !q || (card.dataset.name||"").toLowerCase().includes(q);
+    card.style.display = match ? "" : "none";
+    if(match) visible++;
+  });
+  if(noMatch) noMatch.style.display = (cards.length && !visible) ? "" : "none";
 }
 
 /* ---- criteria editor (titles only; calculated columns stay linked by key) ---- */
