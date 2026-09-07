@@ -403,6 +403,15 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <div class="panel" style="margin-bottom:16px">
     <div class="panel-h">
       <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+        <h3 style="white-space:nowrap">Repeat Flags <span class="badge b-info" id="sailorRepeatCount">0</span></h3>
+        <span class="hint">people flagged across 2 or more months · one card per person, with the criteria, values &amp; months involved</span>
+      </div>
+    </div>
+    <div id="sailorRepeatCards" style="display:flex;flex-wrap:wrap;gap:12px;padding:16px"></div>
+  </div>
+  <div class="panel" style="margin-bottom:16px">
+    <div class="panel-h">
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
         <h3 style="white-space:nowrap">Month-to-Month Comparison</h3>
         <span class="hint">criteria down the side, months across the top · every flagged name &amp; value shown</span>
       </div>
@@ -1224,6 +1233,52 @@ function renderSailorMatrix(){
     }).join("");
     return `<tr><td style="position:-webkit-sticky;position:sticky;left:0;z-index:1;background:${rowBg};font-weight:600;width:110px;max-width:110px;white-space:normal;font-size:11px;line-height:1.3;vertical-align:top;padding:8px 8px;border-right:2px solid var(--line);will-change:transform">${esc(c.criteria)}</td>${cells}</tr>`;
   }).join("");
+  renderSailorRepeatCards(criteria, months);
+}
+function computeSailorRepeats(criteria, months){
+  const byPerson = new Map(); // name -> { monthsSet:Set, byCriterion: Map(criteriaLabel -> [{month,value}]) }
+  criteria.forEach(c=>{
+    months.forEach(m=>{
+      getCriterionValues(m, c.key).forEach(e=>{
+        if(!byPerson.has(e.name)) byPerson.set(e.name, {monthsSet:new Set(), byCriterion:new Map()});
+        const p = byPerson.get(e.name);
+        p.monthsSet.add(m);
+        if(!p.byCriterion.has(c.criteria)) p.byCriterion.set(c.criteria, []);
+        p.byCriterion.get(c.criteria).push({month:m, value:e.value});
+      });
+    });
+  });
+  return [...byPerson.entries()]
+    .filter(([,p])=>p.monthsSet.size>=2)
+    .map(([name,p])=>({name, monthCount:p.monthsSet.size, byCriterion:[...p.byCriterion.entries()]}))
+    .sort((a,b)=> b.monthCount-a.monthCount || a.name.localeCompare(b.name));
+}
+function renderSailorRepeatCards(criteria, months){
+  const wrap = document.getElementById("sailorRepeatCards");
+  if(!wrap) return;
+  const repeats = computeSailorRepeats(criteria, months);
+  const countEl = document.getElementById("sailorRepeatCount");
+  if(countEl) countEl.textContent = String(repeats.length);
+  if(!repeats.length){
+    wrap.innerHTML = `<div class="empty-state" style="padding:20px">No one has been flagged across 2 or more months yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = repeats.map(p=>`
+    <div style="border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--card2);width:280px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
+        <b style="font-size:14px">${esc(p.name)}</b>
+        <span class="badge" style="background:rgba(91,140,255,.16);color:var(--acc);border:1px solid rgba(91,140,255,.3);font-weight:400">${p.monthCount} months</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${p.byCriterion.map(([crit,entries])=>`
+          <div>
+            <div style="font-size:11px;color:var(--mut);margin-bottom:4px" title="${esc(crit)}">${esc(crit)}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">
+              ${entries.map(e=>`<span class="badge" style="font-size:10px;padding:1px 6px;background:var(--card);color:var(--txt);border:1px solid var(--line);font-weight:400">${esc(shortYearLabel(e.month))}: ${esc(e.value)}</span>`).join("")}
+            </div>
+          </div>`).join("")}
+      </div>
+    </div>`).join("");
 }
 
 /* ---- criteria editor (titles only; calculated columns stay linked by key) ---- */
