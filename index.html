@@ -49,10 +49,15 @@ body.light .theme-toggle .label .off{display:inline}
 .years a .chev{flex:none;margin-left:8px;font-size:13px;font-weight:900;color:var(--mut);transition:transform .15s}
 .year-subnav{display:none;flex-direction:column;gap:4px;padding-left:14px;margin:2px 0 4px}
 .year-subnav.open{display:flex}
-.side-tab,.reports-dd-btn{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid transparent;background:none;color:var(--mut);font-weight:600;font-size:12.5px;text-align:left;cursor:pointer;transition:.15s}
-.side-tab:hover,.reports-dd-btn:hover{color:var(--txt);background:var(--card2)}
+.side-tab,.side-group-btn{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid transparent;background:none;color:var(--mut);font-weight:600;font-size:12.5px;text-align:left;cursor:pointer;transition:.15s}
+.side-tab:hover,.side-group-btn:hover{color:var(--txt);background:var(--card2)}
 .side-tab.on{color:var(--txt);background:var(--card2);border-color:var(--line)}
 .side-tab .cnt{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:0 7px;font-size:11px;color:var(--mut);margin-left:auto}
+.side-group-btn{width:100%;justify-content:space-between}
+.side-group-btn .chev{font-size:11px;transition:transform .15s}
+.side-group-btn.open .chev{transform:rotate(90deg)}
+.side-group-sub{display:none;flex-direction:column;gap:4px;padding-left:14px;margin-top:4px}
+.side-group-sub.open{display:flex}
 
 main{padding:26px 24px 80px;min-width:0;width:100%}
 .view{display:none}.view.on{display:block;animation:fade .25s ease}
@@ -193,14 +198,6 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 .team-ms .ms-foot{display:flex;gap:8px;padding:8px 4px 4px;border-top:1px solid var(--line);margin-top:6px}
 .team-ms .ms-foot .btn{height:28px;padding:0 10px;font-size:11px}
 
-/* reports dropdown */
-.reports-dd{position:relative}
-.reports-dd.open .reports-dd-btn{color:var(--txt);background:var(--card2);border-color:var(--line)}
-#reportsDdMenu{position:fixed;min-width:180px;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);display:none;z-index:9999}
-.dd-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;color:var(--txt);font-weight:600;font-size:13px;cursor:pointer}
-.dd-item:hover{background:var(--card2)}
-.dd-item.on{background:var(--card2);color:var(--acc)}
-
 /* ---------- sidebar (year pages) ---------- */
 .layout{display:grid;grid-template-columns:220px 1fr;gap:0;max-width:1500px;margin:0 auto;transition:grid-template-columns .18s}
 .sidebar{position:sticky;top:53px;align-self:start;height:calc(100vh - 53px);padding:18px 14px;border-right:1px solid var(--line);background:color-mix(in srgb,var(--bg) 94%,transparent);overflow:visible}
@@ -250,12 +247,21 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <nav class="years">
     <a id="year2026" class="active" href="?year=2026" aria-current="page" onclick="return toggleYear2026(event)"><span class="dot"></span><span style="flex:1">PX Team-2026</span><span class="chev" id="year2026Chev">▾</span></a>
     <div class="year-subnav" id="year2026Sub">
-      <div class="reports-dd" id="reportsDd">
-        <button class="reports-dd-btn" id="reportsDdBtn" onclick="toggleReportsMs()" style="width:100%">▤ Reports-2026 ▾</button>
+      <div class="side-group" id="reportsGroup">
+        <button class="side-group-btn" id="reportsGroupBtn" onclick="toggleSideGroup('reports')"><span>▤ Reports</span><span class="chev">▸</span></button>
+        <div class="side-group-sub" id="reportsSub">
+          <button class="side-tab" data-v="sailorreport">Sailor's Report</button>
+          <button class="side-tab" data-v="pxreport">PX Report</button>
+        </div>
       </div>
-      <button class="side-tab on" data-v="att">▦ Attendance- Raw data</button>
-      <button class="side-tab" data-v="sail">⚑ Sailor's Raw data</button>
-      <button class="side-tab" data-v="db">✎ Data Editor <span class="cnt" id="ovrCount">0</span></button>
+      <div class="side-group" id="rawdataGroup">
+        <button class="side-group-btn" id="rawdataGroupBtn" onclick="toggleSideGroup('rawdata')"><span>▦ Raw data</span><span class="chev">▸</span></button>
+        <div class="side-group-sub" id="rawdataSub">
+          <button class="side-tab on" data-v="att">Attendance- Raw data</button>
+          <button class="side-tab" data-v="sail">Sailor's Raw data</button>
+          <button class="side-tab" data-v="db">Data Editor <span class="cnt" id="ovrCount">0</span></button>
+        </div>
+      </div>
     </div>
     <a id="year2027" class="stub" href="#" aria-disabled="true" onclick="return false"><span class="dot"></span> PX Team-2027 <span class="badge b-mut">stub</span></a>
   </nav>
@@ -469,10 +475,6 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <div class="modal" id="modalBox"></div>
 </div>
 <div class="toast" id="toast"></div>
-<div class="dd-menu" id="reportsDdMenu">
-  <div class="dd-item" data-v="sailorreport" onclick="selectReport('sailorreport')">Sailor's Report</div>
-  <div class="dd-item" data-v="pxreport" onclick="selectReport('pxreport')">PX Report</div>
-</div>
 
 <script src="data.js?v=1788765283"></script>
 <script>
@@ -507,37 +509,13 @@ document.addEventListener('click', e=>{
   if(!ms) return;
   if(!ms.contains(e.target)) ms.classList.remove("open");
 });
-/* ============ reports dropdown (top-left of main) ============ */
-function toggleReportsMs(){
-  const dd=document.getElementById("reportsDd");
-  const menu=document.getElementById("reportsDdMenu");
-  const opening = !dd.classList.contains("open");
-  dd.classList.toggle("open", opening);
-  if(opening){
-    const btn=document.getElementById("reportsDdBtn");
-    const r=btn.getBoundingClientRect();
-    menu.style.top = r.top + "px";
-    menu.style.left = (r.right + 6) + "px";
-    menu.style.display = "block";
-  } else {
-    menu.style.display = "none";
-  }
-}
-function closeReportsMs(){
-  const dd=document.getElementById("reportsDd"); if(dd) dd.classList.remove("open");
-  const menu=document.getElementById("reportsDdMenu"); if(menu) menu.style.display = "none";
-}
-document.addEventListener('click', e=>{
-  const dd=document.getElementById("reportsDd");
-  const menu=document.getElementById("reportsDdMenu");
-  if(!dd) return;
-  if(!dd.contains(e.target) && !(menu && menu.contains(e.target))) closeReportsMs();
-});
-function selectReport(key){
-  document.querySelectorAll(".side-tab").forEach(x=>x.classList.remove("on"));
-  document.querySelectorAll("#reportsDdMenu .dd-item").forEach(x=>x.classList.toggle("on", x.dataset.v===key));
-  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on", v.id==="view-"+key));
-  closeReportsMs();
+function toggleSideGroup(name){
+  const sub=document.getElementById(name+"Sub");
+  const btn=document.getElementById(name+"GroupBtn");
+  if(!sub||!btn) return;
+  const opening = !sub.classList.contains("open");
+  sub.classList.toggle("open", opening);
+  btn.classList.toggle("open", opening);
 }
 function buildTeamMs(){
   const menu=document.getElementById("teamMsMenu"); const btn=document.getElementById("teamMsBtn");
@@ -591,7 +569,6 @@ function effRows(month){
 /* ============ tabs (nested under PX Team-2026 in the sidebar) ============ */
 document.querySelectorAll(".side-tab").forEach(t=>t.onclick=()=>{
   document.querySelectorAll(".side-tab").forEach(x=>x.classList.toggle("on",x===t));
-  document.querySelectorAll("#reportsDdMenu .dd-item").forEach(x=>x.classList.remove("on"));
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id==="view-"+t.dataset.v));
   updateMainVisibility();
 });
@@ -607,7 +584,6 @@ function toggleYear2026(e){
   year2026Open = !year2026Open;
   document.getElementById("year2026Sub").classList.toggle("open", year2026Open);
   document.getElementById("year2026Chev").textContent = year2026Open ? "▴" : "▾";
-  if(!year2026Open) closeReportsMs();
   updateMainVisibility();
   return false;
 }
