@@ -201,7 +201,8 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 .years a:hover{border-color:var(--line);background:var(--card2);color:var(--txt)}
 .years a.active{background:var(--card);border-color:var(--acc);color:var(--txt);box-shadow:var(--shadow)}
 .years a.active .dot{background:var(--acc)}
-.years a.stub{opacity:0.9}
+.years a.stub{opacity:0.5;cursor:not-allowed}
+.years a.stub:hover{border-color:transparent;background:none;color:var(--mut)}
 .years a.stub .badge{margin-left:auto;font-size:10px;padding:1px 6px}
 .foot-note{margin-top:18px;font-size:11px;color:var(--dim);line-height:1.5;padding:0 6px}
 @media(max-width:900px){ .layout{grid-template-columns:1fr} .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)} }
@@ -236,7 +237,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
       <button class="side-tab" data-v="sail">⚑ Sailor's Raw data</button>
       <button class="side-tab" data-v="db">✎ Data Editor <span class="cnt" id="ovrCount">0</span></button>
     </div>
-    <a id="year2027" class="stub" href="?year=2027"><span class="dot"></span> PX Team Dashboard-2027 <span class="badge b-mut">stub</span></a>
+    <a id="year2027" class="stub" href="#" aria-disabled="true" onclick="return false"><span class="dot"></span> PX Team-2027 <span class="badge b-mut">stub</span></a>
   </nav>
   <p class="foot-note">2026 is live from <em>Sample of Attendance-2026</em>. 2027 is a separate page (Phase 2, empty shell for now).</p>
   <div id="yearStubBanner" style="display:none;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card2);font-size:12px;color:var(--mut);line-height:1.5">PX Team Dashboard-2027 is not yet live. This is an empty 14-col shell (no 2026 data fetched). Coming next phase.</div>
@@ -473,18 +474,25 @@ function effRow(emp, month){
 function effRows(month){
   return DATA.employees[month].map(e => effRow(e.id, month));
 }
-/* ============ tabs (nested under PX Team Dashboard-2026 in the sidebar) ============ */
+/* ============ tabs (nested under PX Team-2026 in the sidebar) ============ */
 document.querySelectorAll(".side-tab").forEach(t=>t.onclick=()=>{
   document.querySelectorAll(".side-tab").forEach(x=>x.classList.toggle("on",x===t));
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id==="view-"+t.dataset.v));
+  updateMainVisibility();
 });
 let year2026Open = false;
+function updateMainVisibility(){
+  if(YEAR!=="2026") return;
+  const main=document.querySelector("main");
+  if(main) main.style.display = year2026Open ? "" : "none";
+}
 function toggleYear2026(e){
   if(YEAR!=="2026") return true; // let the link navigate to switch year
   e.preventDefault();
   year2026Open = !year2026Open;
   document.getElementById("year2026Sub").classList.toggle("open", year2026Open);
   document.getElementById("year2026Chev").textContent = year2026Open ? "▴" : "▾";
+  updateMainVisibility();
   return false;
 }
 function toggleTheme(){
@@ -1354,6 +1362,7 @@ function onManualEntryCritChange(){ manEntryKey=document.getElementById("manCrit
   renderSailorCriteria();
   renderManualEntryEditor();
   renderOvrLog();
+  updateMainVisibility();
   save();
  }catch(e){ console.error(e);}
 })();
