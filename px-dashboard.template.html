@@ -51,11 +51,15 @@ body.light .theme-toggle .label .off{display:inline}
 .year-subnav.open{display:flex}
 .side-tab,.side-group-btn{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid transparent;background:none;color:var(--mut);font-weight:600;font-size:12.5px;text-align:left;cursor:pointer;transition:.15s}
 .side-tab:hover,.side-group-btn:hover{color:var(--txt);background:var(--card2)}
-.side-tab.on{color:var(--txt);background:var(--card2);border-color:var(--line)}
+.side-tab.on{color:var(--acc);background:rgba(91,140,255,.12);border-color:rgba(91,140,255,.35);font-weight:700}
+.side-tab.on .cnt{border-color:rgba(91,140,255,.35);color:var(--acc)}
 .side-tab .cnt{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:0 7px;font-size:11px;color:var(--mut);margin-left:auto}
-.side-group-btn{width:100%;justify-content:space-between}
-.side-group-btn .chev{font-size:11px;transition:transform .15s}
+.side-group-btn{width:100%}
+.side-group-btn .chev{font-size:11px;transition:transform .15s;margin-left:auto}
 .side-group-btn.open .chev{transform:rotate(90deg)}
+.side-group-btn .dot{width:6px;height:6px;border-radius:50%;background:transparent;flex:none;transition:background .15s}
+.side-group-btn.has-active{color:var(--txt)}
+.side-group-btn.has-active .dot{background:var(--acc)}
 .side-group-sub{display:none;flex-direction:column;gap:4px;padding-left:14px;margin-top:4px}
 .side-group-sub.open{display:flex}
 
@@ -248,14 +252,14 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     <a id="year2026" class="active" href="?year=2026" aria-current="page" onclick="return toggleYear2026(event)"><span class="dot"></span><span style="flex:1">PX Team-2026</span><span class="chev" id="year2026Chev">▾</span></a>
     <div class="year-subnav" id="year2026Sub">
       <div class="side-group" id="reportsGroup">
-        <button class="side-group-btn" id="reportsGroupBtn" onclick="toggleSideGroup('reports')"><span>▤ Reports</span><span class="chev">▸</span></button>
+        <button class="side-group-btn" id="reportsGroupBtn" onclick="toggleSideGroup('reports')"><span>▤ Reports</span><span class="dot"></span><span class="chev">▸</span></button>
         <div class="side-group-sub" id="reportsSub">
           <button class="side-tab" data-v="sailorreport">Sailor's Report</button>
           <button class="side-tab" data-v="pxreport">PX Report</button>
         </div>
       </div>
       <div class="side-group" id="rawdataGroup">
-        <button class="side-group-btn" id="rawdataGroupBtn" onclick="toggleSideGroup('rawdata')"><span>▦ Raw data</span><span class="chev">▸</span></button>
+        <button class="side-group-btn has-active" id="rawdataGroupBtn" onclick="toggleSideGroup('rawdata')"><span>▦ Raw data</span><span class="dot"></span><span class="chev">▸</span></button>
         <div class="side-group-sub" id="rawdataSub">
           <button class="side-tab on" data-v="att">Attendance- Raw data</button>
           <button class="side-tab" data-v="sail">Sailor's Raw data</button>
@@ -570,6 +574,7 @@ function effRows(month){
 document.querySelectorAll(".side-tab").forEach(t=>t.onclick=()=>{
   document.querySelectorAll(".side-tab").forEach(x=>x.classList.toggle("on",x===t));
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id==="view-"+t.dataset.v));
+  document.querySelectorAll(".side-group-btn").forEach(g=>g.classList.toggle("has-active", g.parentElement.querySelector(".side-tab.on")!=null));
   updateMainVisibility();
 });
 let year2026Open = false;
