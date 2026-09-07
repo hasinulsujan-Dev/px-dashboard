@@ -407,7 +407,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
         <span class="hint">people flagged across 2 or more months · one card per person, with the criteria, values &amp; months involved</span>
       </div>
     </div>
-    <div id="sailorRepeatCards" style="display:flex;flex-wrap:wrap;gap:12px;padding:16px"></div>
+    <div id="sailorRepeatCards" style="display:flex;flex-direction:column;gap:16px;padding:16px"></div>
   </div>
   <div class="panel" style="margin-bottom:16px">
     <div class="panel-h">
@@ -1264,17 +1264,17 @@ function renderSailorRepeatCards(criteria, months){
     return;
   }
   wrap.innerHTML = repeats.map(p=>`
-    <div style="border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--card2);width:280px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
-        <b style="font-size:14px">${esc(p.name)}</b>
-        <span class="badge" style="background:rgba(91,140,255,.16);color:var(--acc);border:1px solid rgba(91,140,255,.3);font-weight:400">${p.monthCount} months</span>
+    <div style="border:1px solid var(--line);border-radius:14px;padding:20px;background:var(--card2)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px">
+        <b style="font-size:17px">${esc(p.name)}</b>
+        <span class="badge" style="font-size:12px;padding:4px 12px;background:rgba(91,140,255,.16);color:var(--acc);border:1px solid rgba(91,140,255,.3);font-weight:400">${p.monthCount} months</span>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;flex-direction:column;gap:14px">
         ${p.byCriterion.map(([crit,entries])=>`
           <div>
-            <div style="font-size:11px;color:var(--mut);margin-bottom:4px" title="${esc(crit)}">${esc(crit)}</div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px">
-              ${entries.map(e=>`<span class="badge" style="font-size:10px;padding:1px 6px;background:var(--card);color:var(--txt);border:1px solid var(--line);font-weight:400">${esc(shortYearLabel(e.month))}: ${esc(e.value)}</span>`).join("")}
+            <div style="font-size:13px;color:var(--mut);margin-bottom:8px" title="${esc(crit)}">${esc(crit)}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              ${entries.map(e=>`<span class="badge" style="font-size:12.5px;padding:5px 12px;background:var(--card);color:var(--txt);border:1px solid var(--line);font-weight:400">${esc(shortYearLabel(e.month))}: ${esc(e.value)}</span>`).join("")}
             </div>
           </div>`).join("")}
       </div>
