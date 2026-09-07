@@ -5,3 +5,4 @@ Desktop.ini
 *~
 *.bak
 .sass-cache/
+.env

@@ -16,10 +16,10 @@ sailors/sailorCriteria/sailorManual (from the separate Sailor's Report sheet) un
 Usage:
   python3 fetch-zkteco-snapshot.py
   python3 fetch-zkteco-snapshot.py --months January,February,March
-  python3 fetch-zkteco-snapshot.py --env Docs/zkteco-api/.env --out data.js
+  python3 fetch-zkteco-snapshot.py --env .env --out data.js
 
-Reads BIOTIME_BASE_URL / BIOTIME_USERNAME / BIOTIME_PASSWORD from Docs/zkteco-api/.env
-by default (the existing zkteco-api tool's config).
+Reads BIOTIME_BASE_URL / BIOTIME_USERNAME / BIOTIME_PASSWORD from .env
+in the project root by default (gitignored).
 """
 import argparse
 import calendar
@@ -196,7 +196,7 @@ def build_month_data(year, month_num, transactions, emp_directory):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--env", default="Docs/zkteco-api/.env")
+    ap.add_argument("--env", default=".env")
     ap.add_argument("--out", default="data.js")
     ap.add_argument("--months", default=",".join(MONTH_NAMES[:8]))
     args = ap.parse_args()
