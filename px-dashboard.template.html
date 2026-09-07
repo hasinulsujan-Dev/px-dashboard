@@ -90,6 +90,8 @@ main{padding:26px 24px 80px;min-width:0;width:100%}
 .panel-h h3{font-size:14.5px;font-weight:700}
 .panel-h .hint{font-size:12px;color:var(--mut)}
 .tblwrap{overflow-x:auto;max-height:calc(100vh - 320px);min-height:200px}
+.stick-l{position:sticky;z-index:1;background:var(--card)}
+thead .stick-l{z-index:4;background:var(--card2)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{position:sticky;top:0;background:var(--card2);z-index:2;text-align:left;padding:10px 14px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--mut);white-space:nowrap;cursor:pointer;border-bottom:1px solid var(--line)}
 thead th:hover{color:var(--txt)}
@@ -226,7 +228,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
       <p id="syncInfo">Attendance &amp; Sailor's Report · Jan-2026 … Dec-2026</p>
     </div>
     <div class="spacer"></div>
-    <button class="badge b-mut" id="syncPill" title="Sync latest data from Google Sheets" onclick="syncLive()">● sheets</button>
+    <button class="badge b-mut" id="syncPill" title="Sync Sailor's Report from Google Sheets (Attendance loads from the ZKTeco snapshot in data.js)" onclick="syncLive()">● zkteco-api sync</button>
     <button class="btn" onclick="exportAll()">↓ Export</button>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Switch theme" aria-label="Switch between Light and Dark mode">
       <span class="track"><span class="thumb"></span></span>
@@ -250,7 +252,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     </div>
     <a id="year2027" class="stub" href="#" aria-disabled="true" onclick="return false"><span class="dot"></span> PX Team-2027 <span class="badge b-mut">stub</span></a>
   </nav>
-  <p class="foot-note">2026 is live from <em>Sample of Attendance-2026</em>. 2027 is a separate page (Phase 2, empty shell for now).</p>
+  <p class="foot-note">2026 Attendance is a periodic snapshot from the <em>ZKTeco BioTime API</em>; Sailor's Report is still live from Google Sheets. 2027 is a separate page (Phase 2, empty shell for now).</p>
   <div id="yearStubBanner" style="display:none;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card2);font-size:12px;color:var(--mut);line-height:1.5">PX Team Dashboard-2027 is not yet live. This is an empty 14-col shell (no 2026 data fetched). Coming next phase.</div>
 </aside>
 
@@ -294,8 +296,8 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     </div>
     <div class="tblwrap" style="max-height:46vh"><table id="summaryTbl">
       <thead><tr>
-        <th data-k="id">Employee ID</th>
-        <th data-k="name">Name</th>
+        <th data-k="name" class="stick-l" style="left:0;width:170px;min-width:170px">Name</th>
+        <th data-k="team" class="stick-l" style="left:170px;width:160px;min-width:160px">Department/Team</th>
         <th data-k="wd" style="text-align:right">Total working days</th>
         <th data-k="att" style="text-align:right">Attended days</th>
         <th data-k="absent" style="text-align:right">Total Absent</th>
@@ -318,8 +320,8 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     </div>
     <div class="tblwrap"><table id="attTbl">
       <thead><tr>
-        <th data-k="id">Employee ID</th>
-        <th data-k="name">Name</th>
+        <th data-k="id" class="stick-l" style="left:0;width:110px;min-width:110px">Employee ID</th>
+        <th data-k="name" class="stick-l" style="left:110px;width:180px;min-width:180px">Name</th>
         <th data-k="perks">Perks</th>
         <th data-k="team">Department/Team</th>
         <th data-k="date">Date</th>
@@ -369,7 +371,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   </div>
   <div class="kpis">
     <div class="kpi" style="--kc:var(--info);--kb:var(--infobg)"><span class="lbl">Manual edits</span><span class="val" id="dbCount">0</span><span class="sub">stored in this browser</span></div>
-    <div class="kpi" style="--kc:var(--ok);--kb:var(--okbg)"><span class="lbl">Sync source</span><span class="val" style="font-size:15px;line-height:38px">Google Sheets</span><span class="sub">Sample of Attendance-2026 · Sailor's Report-2026</span></div>
+    <div class="kpi" style="--kc:var(--ok);--kb:var(--okbg)"><span class="lbl">Sync source</span><span class="val" style="font-size:15px;line-height:38px">ZKTeco + Sheets</span><span class="sub">Attendance: ZKTeco snapshot · Sailor's Report: Google Sheets</span></div>
   </div>
   <div class="panel">
     <div class="panel-h"><h3>Override log</h3></div>
@@ -408,14 +410,31 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 
 <!-- ================= SAILOR'S REPORT (Reports menu) ================= -->
 <section class="view" id="view-sailorreport">
+  <div class="toolbar">
+    <select id="sailorReportMonthSel" onchange="onSailorReportMonthChange()" style="height:36px"></select>
+  </div>
   <div class="panel">
-    <div class="panel-h"><h3>Sailor's Report</h3><span class="hint">Coming soon — this report will be designed later.</span></div>
-    <div class="empty-state" style="padding:60px 20px">Content for Sailor's Report will be added soon.</div>
+    <div class="panel-h">
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+        <h3 style="white-space:nowrap">Sailor's Report <span id="sailorReportMonthLbl"></span></h3>
+        <span class="hint">criteria down the side, each with the people flagged for it · calculated from the same logic as Sailor's Raw data</span>
+      </div>
+    </div>
+    <div class="tblwrap">
+      <table id="sailorReportTbl">
+        <thead><tr>
+          <th style="width:40px">#</th>
+          <th style="min-width:220px">Criteria</th>
+          <th>Entries</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 </section>
 </main>
 
-<footer>PX Team Dashboard-2026 · v1 · Data: Sample of Attendance-2026 &amp; Sailor's Report-2026 with Sample Data · Weekends: Fri &amp; Sat</footer>
+<footer>PX Team Dashboard-2026 · v1 · Data: ZKTeco BioTime Attendance snapshot &amp; Sailor's Report-2026 with Sample Data · Weekends: Fri &amp; Sat</footer>
 
 <div class="overlay" id="ovl" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modalBox"></div>
@@ -426,7 +445,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <div class="dd-item" data-v="pxreport" onclick="selectReport('pxreport')">PX Report</div>
 </div>
 
-<script src="data.js"></script>
+<script src="data.js?v=1788765283"></script>
 <script>
 
 /* ============ state ============ */
@@ -632,6 +651,7 @@ function renderSummary(){
     switch(summarySort){
       case "id": va=a.id; vb=b.id; break;
       case "name": va=a.p?.name||""; vb=b.p?.name||""; break;
+      case "team": va=a.r.team||a.p?.team||""; vb=b.r.team||b.p?.team||""; break;
       case "wd": va=a.r.wd; vb=b.r.wd; break;
       case "att": va=a.r.att; vb=b.r.att; break;
       case "absent": va=a.r.absent; vb=b.r.absent; break;
@@ -661,11 +681,13 @@ function renderSummary(){
     const onTime = r.att - r.late;
     const lt9 = r.avg!=null && r.avg<9 ? fmtDuration(r.avg) : "—";
     const gt9 = r.avg!=null && r.avg>9 ? fmtDuration(r.avg) : "—";
-    const sel = activeSummaryId===id ? ' style="background:var(--card2)"' : "";
+    const isSel = activeSummaryId===id;
+    const sel = isSel ? ' style="background:var(--card2)"' : "";
+    const rowBg = isSel ? "var(--card2)" : "var(--card)";
     const escId = id.replace(/'/g,"\'");
     return `<tr${sel} onclick="document.getElementById(\'q\').value=\'\'; activeSummaryId='${escId}'; renderSummary(); renderAtt(); document.getElementById(\'attTbl\').scrollIntoView({behavior:'smooth',block:'start'});">
-      <td>${esc(id)}</td>
-      <td>${esc(p?.name||id)}</td>
+      <td class="stick-l" style="left:0;background:${rowBg}">${esc(p?.name||id)}</td>
+      <td class="stick-l" style="left:170px;background:${rowBg}">${esc(r.team||p?.team||"—")}</td>
       <td style="text-align:right">${r.wd}</td>
       <td style="text-align:right"><b>${r.att}</b></td>
       <td style="text-align:right" class="${r.absent>0?"num-bad":""}">${r.absent}</td>
@@ -783,8 +805,8 @@ function renderAtt(){
   if(!rows.length){ tb.innerHTML=`<tr><td colspan="14" class="empty-state">No rows for ${mSel} with current filters</td></tr>`; return; }
   tb.innerHTML = rows.map(r=>`
     <tr onclick="openEmp('${esc(r.emp)}','${mSel}')">
-      <td>${esc(r.emp)}</td>
-      <td><div class="emp-cell"><span class="avat">${esc(initials(r.name))}</span><div><div class="nm">${esc(r.name)}</div></div></div></td>
+      <td class="stick-l" style="left:0">${esc(r.emp)}</td>
+      <td class="stick-l" style="left:110px"><div class="emp-cell"><span class="avat">${esc(initials(r.name))}</span><div><div class="nm">${esc(r.name)}</div></div></div></td>
       <td><span class="badge b-mut">${esc(r.perks||"—")}</span></td>
       <td>${esc(r.team||"—")}</td>
       <td>${esc(r.date)}</td>
@@ -909,7 +931,7 @@ function renderOvrLog(){
 }
 function resetOverrides(){
   if(!confirm("Remove ALL manual edits and restore sheet values?"))return;
-  OVR={att:{},sail:{},sailorCriteria:null,sailorManualEntries:{}}; save(); renderAtt(); renderSailorCriteria(); renderManualEntryEditor(); renderOvrLog(); toast("All manual edits cleared");
+  OVR={att:{},sail:{},sailorCriteria:null,sailorManualEntries:{}}; save(); renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderOvrLog(); toast("All manual edits cleared");
 }
 
 /* ============ export ============ */
@@ -927,10 +949,10 @@ function exportAll(){
 
 /* ============ live sync (gviz JSONP) ============ */
 const SHEETS = {
-  att: { id:"1i5NrueAeZLEE4blFuX6D5Hdb6wAVuomI8zxYKLnpC5Y" },
+  // Attendance is no longer synced from "Sample of Attendance-2026" — it's loaded from the
+  // periodic ZKTeco BioTime snapshot embedded in data.js (see fetch-zkteco-snapshot.py).
   sail:{ id:"1ItMz3DMVH9U2GkY5j_XOLssonrkO-VoQhqVUN49fWPU" }
 };
-const MONTH_GVIZ = {January:"January Attendance 2026",February:"February Attendance 2026",March:"March Attendance 2026",April:"April Attendance 2026",May:"May Attendance 2026",June:"June Attendance 2026",July:"July Attendance 2026",August:"August Attendance 2026",September:"September Attendance 2026",October:"October Attendance 2026",November:"November Attendance 2026",December:"December Attendance 2026"};
 const SAIL_TABS = [["Apr-2026","April"],["May-2026","May"],["Jun-2026","June"],["Jul-2026","July"],["Aug-2026","August"],["Sep-2026","September"],["Oct-2026","October"],["Nov-2026","November"],["Dec-2026","December"]];
 
 let gvizSeq = 0;
@@ -974,93 +996,11 @@ function gvizToRows(t){
   return rows;
 }
 
-/* --- calc engine (JS port of generate.py) --- */
-function parseDateJS(s){
-  s=(s||"").trim();
-  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if(m) return new Date(+m[1],+m[2]-1,+m[3]);
-  m=s.match(/^(\d{1,2})-([A-Za-z]{3,})-(\d{4})$/);
-  if(m){ const d=new Date(m[1]+" "+m[2]+" "+m[3]); return isNaN(d)?null:d; }
-  return null;
-}
-function parseClockJS(s){
-  s=(s||"").trim(); if(!s) return null;
-  const m=s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-  if(!m) return null;
-  const h=+m[1], mi=+m[2];
-  if(h>23||mi>59) return null;
-  return h*60+mi;
-}
-function hhmmJS(mins){ const t=Math.round(mins); return Math.floor(t/3600)+":"+String(Math.floor(t%3600/60)).padStart(2,"0"); }
-function computeRows(raw){
-  return raw.map(r=>{
-    const cin=r.cin, cout=r.cout;
-    const status = cin==null&&cout==null ? "Absent" : (cin!=null&&cin>600 ? "Late" : "On Time");
-    let hours=null;
-    if(cin!=null&&cout!=null){ let m2=cout-cin; if(m2<0)m2+=1440; hours=Math.round(m2/60*100)/100; }
-    const dow=r.date.getDay();
-    const isWeekday = r.weekFlag==="Weekday" ? true : r.weekFlag==="Weekend" ? false : (dow!==5 && dow!==6);
-    return {...r, status, hours, dow,
-      attended: cin!=null, weekday: isWeekday, dow,
-      late: status==="Late",
-      below8: hours!=null&&hours<8,
-      earlyOut: cout!=null&&cout<19*60 };
-  });
-}
-function aggregateRows(rows){
-  const byEmp=new Map();
-  // Vote on Name/Perks/Team per employee instead of "last row wins" — a single
-  // stray/corrupted cell in the sheet (seen in practice, e.g. a garbled Name on
-  // one day out of a whole month) shouldn't override every correct value.
-  const votes=new Map(); // emp -> {name:Map<val,count>, perks:Map, team:Map}
-  const vote=(emp,field,val)=>{
-    val=(val||"").trim(); if(!val) return;
-    if(!votes.has(emp)) votes.set(emp,{name:new Map(),perks:new Map(),team:new Map()});
-    const m=votes.get(emp)[field];
-    m.set(val,(m.get(val)||0)+1);
-  };
-  rows.forEach(r=>{
-    vote(r.emp,"name",r.name); vote(r.emp,"perks",r.perks); vote(r.emp,"team",r.team);
-    if(!byEmp.has(r.emp)) byEmp.set(r.emp,[]);
-    byEmp.get(r.emp).push(r);
-  });
-  const top=(m)=>{ let best="",bestN=-1; for(const [val,n] of m){ if(n>bestN){best=val;bestN=n;} } return best; };
-  const profs={};
-  for(const emp of byEmp.keys()){
-    const v=votes.get(emp)||{name:new Map(),perks:new Map(),team:new Map()};
-    profs[emp]={name:top(v.name),perks:top(v.perks),team:top(v.team)};
-  }
-  const out=[];
-  for(const [emp,rs] of [...byEmp.entries()].sort((a,b)=>(profs[a[0]].name||a[0]).localeCompare(profs[b[0]].name||b[0]))){
-    const wd=rs.filter(r=>r.weekday), att=wd.filter(r=>r.attended);
-    const hrs=att.map(r=>r.hours).filter(h=>h!=null);
-    const avg=hrs.length?Math.round(hrs.reduce((s,h)=>s+h,0)/hrs.length*100)/100:null;
-    out.push({id:emp,name:profs[emp].name,perks:profs[emp].perks,team:profs[emp].team,
-      att:att.length, wd:wd.length, absent:wd.filter(r=>!r.attended).length,
-      late:att.filter(r=>r.late).length, b8:att.filter(r=>r.below8).length,
-      eco:att.filter(r=>r.earlyOut).length,
-      avg, band:avg==null?"":(avg<9?"<9":">9")});
-  }
-  return [out,profs];
-}
-function autoSailorsJS(aggs, profs){
-  const e={late:[],partial:[],early:[],avg_lt9:[],avg_gt9:[]};
-  aggs.forEach(a=>{
-    const p=profs[a.id]||{};
-    if(/remote/i.test((p.perks||"")+(p.team||""))) return;
-    if(a.late>3) e.late.push({n:a.name,v:String(a.late)});
-    if(a.b8>3) e.partial.push({n:a.name,v:String(a.b8)});
-    if(a.eco>3) e.early.push({n:a.name,v:String(a.eco)});
-    if(a.avg!=null){ if(a.avg<9) e.avg_lt9.push({n:a.name,v:hhmmJS(a.avg*3600)}); else if(a.avg>9) e.avg_gt9.push({n:a.name,v:hhmmJS(a.avg*3600)}); }
-  });
-  return e;
-}
-
 /* --- sync orchestration --- */
-function setPill(state,label){
+function setPill(state){
   const p=$("#syncPill");
   p.className="badge "+(state==="live"?"p-live":state==="off"?"p-off":"p-sync");
-  p.textContent="● "+label;
+  p.textContent="● zkteco-api sync";
 }
 let syncing=false;
 async function syncLive(){
@@ -1075,81 +1015,27 @@ async function syncLive(){
   }
 }
 async function syncLiveRun(){
-  setPill("sync","syncing…");
-  const order = Object.keys(MONTH_GVIZ);
-  const settled = await Promise.all(order.map(month=>{
-    const tab = MONTH_GVIZ[month];
-    return new Promise(res=>gvizFetch(SHEETS.att.id, tab, rows=>{
-      if(!rows) return res(null);
-      const recs = rowsToRecords(rows, month);
-      res(recs ? [month, recs] : null);
-    }));
-  }));
-  const discovered = settled.filter(Boolean);
-  if(!discovered.length){ setPill("off","offline"); toast("Live sync unavailable — using embedded snapshot"); return; }
-  discovered.sort((a,b)=> order.indexOf(a[0]) - order.indexOf(b[0]));
-  const months=[], employees={}, daily={}, sailors={}, profiles={};
-  discovered.forEach(([month,recs])=>{
-    const rows=computeRows(recs);
-    const [aggs,profs]=aggregateRows(rows);
-    months.push(month); employees[month]=aggs;
-    Object.assign(profiles,profs);
-    daily[month]=rows.map(r=>[r.emp,(r.date.getMonth()+1)+"/"+(r.date.getDate()),r.cin,r.cout,r.status]);
-    sailors[month]=autoSailorsJS(aggs,profiles);
-  });
+  // Attendance now comes from the periodic ZKTeco BioTime snapshot embedded in data.js
+  // (see fetch-zkteco-snapshot.py) — "Sample of Attendance-2026" is intentionally ignored.
+  // This only refreshes Sailor's Report, which still lives on its own separate sheet.
+  setPill("sync");
   const sailorManual={};
   const sailSettled = await Promise.all(SAIL_TABS.map(([tab,label])=>
     new Promise(res=>gvizFetch(SHEETS.sail.id, tab, rows=>res(rows?[label,rows]:null)))
   ));
+  let anySail=false;
   for(const entry of sailSettled){
     if(!entry) continue;
+    anySail=true;
     const [label, rows] = entry;
     const parsed=parseSailorTab(rows);
     if(parsed){ sailorManual[label]=parsed.manual; if(parsed.criteria.length) DATA.sailorCriteria=parsed.criteria; }
   }
-  DATA.months=months; DATA.employees=employees; DATA.daily=daily;
-  DATA.sailors=sailors; DATA.profiles=profiles;
   DATA.sailorManual=Object.keys(sailorManual).length?sailorManual:DATA.sailorManual;
-  setPill("live","live");
-  buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria(); renderManualEntryEditor();
-  $("#syncInfo").textContent=`Live · synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})} · ${months.length} month${months.length>1?"s":""}`;
-  toast("Live sync complete — "+months.join(", "));
-}
-function rowsToRecords(rows, month){
-  let hi=-1, cols=null;
-  for(let i=0;i<Math.min(rows.length,6);i++){
-    const cells=rows[i].map(c=>(c||"").trim());
-    if(cells.includes("Employee ID")&&cells.includes("Name")){ hi=i; cols={}; cells.forEach((n,ix)=>{ if(n&&!(n in cols))cols[n]=ix; }); break; }
-  }
-  if(hi<0){
-    // Some tabs (e.g. January Attendance 2026) have no labeled header row at all —
-    // gviz reports a blank/title row instead of "Employee ID"/"Name". Fall back to
-    // that tab's fixed column order instead of dropping the whole month.
-    cols={"Employee ID":0,"Name":1,"Department/Team":2,"Date":3,"Weekdays":4,"Clock In":5,"Clock Out":6};
-  }
-  // January guard: Date label is blank in gviz; recover by position (col 3). Also Clock cols may be blank-labeled in older months.
-  const dateIx = cols["Date"] ?? 3;
-  const clockInIx = cols["Clock In"] ?? cols["Clock In "] ?? (dateIx!=null ? dateIx+2 : null);
-  const clockOutIx = cols["Clock Out"] ?? cols["Clock Out "] ?? (dateIx!=null ? dateIx+3 : null);
-  const recs=[];
-  for(let i=hi+1;i<rows.length;i++){
-    const r=rows[i];
-    const g=n=>{
-      if(n==="Date"){ const v=r[dateIx]; return v!=null?String(v).trim():""; }
-      if(n==="Clock In"){ const ix=clockInIx; return ix!=null&&ix<r.length ? String(r[ix]||"").trim() : ""; }
-      if(n==="Clock Out"){ const ix=clockOutIx; return ix!=null&&ix<r.length ? String(r[ix]||"").trim() : ""; }
-      const ix=cols[n]; return ix!=null&&ix<r.length?(r[ix]||"").trim():"";
-    };
-    const emp=g("Employee ID"); const date=parseDateJS(g("Date"));
-    if(!emp||!date) continue;
-    if(date.getFullYear()!==2026) continue;
-    const cin=parseClockJS(g("Clock In")), cout=parseClockJS(g("Clock Out"));
-    const weekFlag = g("Weekdays");
-    recs.push({emp,name:g("Name"),perks:g("Perks")||"",team:g("Department/Team")||g("Department")||"",date,weekFlag,cin,cout});
-  }
-  // Empty months (e.g. Aug–Dec stubs filled with 2025 data) should render as no data
-  if(!recs.length) return null;
-  return recs;
+  setPill(anySail?"live":"off");
+  buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor();
+  $("#syncInfo").textContent=`Attendance: ZKTeco snapshot · Sailor's Report synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}`;
+  toast(anySail ? "Sailor's Report sync complete" : "Sailor's Report sync unavailable");
 }
 function parseSailorTab(rows){
   let start=-1;
@@ -1246,7 +1132,7 @@ function getCriterionValues(month, key){
 let sailReportMonth = getPreviousMonthName();
 function onSailReportMonthChange(){
   sailReportMonth = document.getElementById("sailReportMonthSel").value;
-  renderSailorCriteria();
+  renderSailorCriteria(); renderSailorReport();
 }
 function renderSailorCriteria(){
   const monthSel=document.getElementById("sailReportMonthSel");
@@ -1282,6 +1168,36 @@ function renderSailorCriteria(){
     <td style="position:sticky;left:0;background:var(--card);font-weight:600">${esc(name)}</td>
     ${valueMaps.map(m=>`<td style="text-align:center">${m.has(name)?esc(m.get(name)):"—"}</td>`).join("")}
   </tr>`).join("");
+}
+
+/* ---- Sailor's Report (Reports-2026 menu): criteria in rows, entries per row ---- */
+let sailorReportMonth = getPreviousMonthName();
+function onSailorReportMonthChange(){
+  sailorReportMonth = document.getElementById("sailorReportMonthSel").value;
+  renderSailorReport();
+}
+function renderSailorReport(){
+  const sel=document.getElementById("sailorReportMonthSel");
+  if(sel){
+    if(!sel.options.length) sel.innerHTML = ALL_MONTHS.map(m=>`<option value="${m}">${shortYearLabel(m)}</option>`).join("");
+    sel.value = sailorReportMonth;
+  }
+  const lbl=document.getElementById("sailorReportMonthLbl"); if(lbl) lbl.textContent = shortYearLabel(sailorReportMonth);
+
+  const tbody=document.querySelector("#sailorReportTbl tbody");
+  if(!tbody) return;
+  const criteria=getSailorCriteriaList();
+  if(!criteria.length){
+    tbody.innerHTML = `<tr><td colspan="3" class="empty-state">No criteria defined.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = criteria.map(c=>{
+    const entries = getCriterionValues(sailorReportMonth, c.key);
+    const list = entries.length
+      ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${entries.map(e=>`<span class="badge b-mut">${esc(e.name)} — ${esc(e.value)}</span>`).join("")}</div>`
+      : `<span class="none-txt">No entries for ${esc(shortYearLabel(sailorReportMonth))}.</span>`;
+    return `<tr><td>${c.no}</td><td>${esc(c.criteria)}</td><td>${list}</td></tr>`;
+  }).join("");
 }
 
 /* ---- criteria editor (titles only; calculated columns stay linked by key) ---- */
@@ -1336,11 +1252,11 @@ function saveCriteriaEdits(){
   }).filter(Boolean);
   if(!list.length){ toast("Add at least one criterion"); return; }
   OVR.sailorCriteria = list;
-  save(); renderSailorCriteria(); renderManualEntryEditor(); closeModal(); toast("Criteria saved");
+  save(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); closeModal(); toast("Criteria saved");
 }
 function resetCriteriaToDefault(){
   OVR.sailorCriteria = null;
-  save(); renderSailorCriteria(); renderManualEntryEditor(); closeModal(); toast("Reverted to default criteria");
+  save(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); closeModal(); toast("Reverted to default criteria");
 }
 
 /* ---- manual entries for non-computed criteria (Data Editor) ---- */
@@ -1361,7 +1277,7 @@ function removeManualEntry(month, key, index){
   arr.splice(index,1);
   save();
   renderManualEntryEditor();
-  renderSailorCriteria();
+  renderSailorCriteria(); renderSailorReport();
   renderOvrLog();
 }
 function addManualEntryFromForm(){
@@ -1371,7 +1287,7 @@ function addManualEntryFromForm(){
   addManualEntry(manEntryMonth, manEntryKey, name, value||"—");
   nameEl.value=""; valEl.value=""; nameEl.focus();
   renderManualEntryEditor();
-  renderSailorCriteria();
+  renderSailorCriteria(); renderSailorReport();
   renderOvrLog();
   toast("Entry added");
 }
@@ -1417,14 +1333,14 @@ function onManualEntryCritChange(){ manEntryKey=document.getElementById("manCrit
     const pill=document.getElementById("syncPill"); if(pill){ pill.className="badge b-mut"; pill.textContent="● 2027 stub"; pill.disabled=true; }
     const si2=document.getElementById("syncInfo"); if(si2) si2.textContent="PX Team Dashboard-2027 · Coming next phase — no data yet";
     const attSel2027=document.getElementById("attMonthSel"); if(attSel2027) attSel2027.value=getPreviousMonthName();
-    renderAtt(); renderSailorCriteria(); renderManualEntryEditor(); renderOvrLog(); save();
+    renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderOvrLog(); save();
     return;
   }
   populateMonthSelect();
   const attSel=document.getElementById("attMonthSel"); if(attSel) attSel.value=getPreviousMonthName();
   buildTeamMs();
   refreshMatrix(); renderAtt();
-  renderSailorCriteria();
+  renderSailorCriteria(); renderSailorReport();
   renderManualEntryEditor();
   renderOvrLog();
   updateMainVisibility();
