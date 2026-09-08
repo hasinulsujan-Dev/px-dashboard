@@ -278,7 +278,13 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <main>
 <!-- ================= LANDING (shown while PX Team-2026 is collapsed) ================= -->
 <div id="landingHome">
+  <div id="todayWrap" style="display:none;margin-bottom:24px">
+    <h3 style="font-size:14.5px;font-weight:700;color:var(--txt);margin:0 0 4px 2px">Today</h3>
+    <div id="todayHint" style="font-size:12px;color:var(--mut);margin:0 0 10px 2px"></div>
+    <div class="kpis-2col" id="todayCards"></div>
+  </div>
   <div id="landingTillDateWrap" style="display:none">
+    <h3 style="font-size:14.5px;font-weight:700;color:var(--txt);margin:0 0 4px 2px">Current month- till date</h3>
     <div id="landingTillDateHint" style="font-size:12px;color:var(--mut);margin:0 0 10px 2px"></div>
     <div class="kpis-2col" id="landingTillDateCards"></div>
   </div>
@@ -570,6 +576,10 @@ const isOnsite = e => !/remote/i.test((e.perks||"")+(e.team||""));
 // Support Staff (any variant, e.g. "Support Staff Cleaner") and Temporary team members
 // are excluded from all attendance/sailor's-report calculations and displays.
 const isExcludedTeam = team => /^support staff/i.test(team||"") || /^temporary/i.test(team||"");
+// Landing "Today" / "Current month- till date" cards only ever count these three teams —
+// anything else (Support Staff, Temporary, or any unexpected team name) is ignored there.
+const LANDING_TEAMS = ["exabyting office","bkash","exabyting remote"];
+const isLandingTeam = team => LANDING_TEAMS.includes(String(team||"").trim().toLowerCase());
 
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),2200); }
 
@@ -645,6 +655,37 @@ function populateMonthSelect(){ const sel=document.getElementById("attMonthSel")
 const ALL_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 function getPreviousMonthName(){ return ALL_MONTHS[(new Date().getMonth()-1+12)%12]; }
 function getCurrentMonthName(){ return ALL_MONTHS[new Date().getMonth()]; }
+// "Today" cards shown on the collapsed PX Team-2026 landing view — counts for the real
+// calendar day only (one row per employee per day in DATA.daily, so this is an unduplicated
+// unique-headcount total; excluded teams are skipped the same way as everywhere else).
+function renderTodayCards(){
+  const wrap=document.getElementById("todayWrap");
+  if(!wrap) return;
+  const realToday=new Date();
+  const mSel=ALL_MONTHS[realToday.getMonth()];
+  if(realToday.getFullYear()!==2026 || !(DATA.months||[]).includes(mSel)){
+    wrap.style.display="none";
+    return;
+  }
+  const todayDay=realToday.getDate();
+  let attToday=0, absentToday=0, lateToday=0, onTimeToday=0;
+  (DATA.daily[mSel]||[]).forEach(d=>{
+    const emp=d[0], dateStr=d[1], status=d[4];
+    const day=parseInt(dateStr.split("/")[1],10);
+    if(day!==todayDay) return;
+    const prof=DATA.profiles?.[emp]||{};
+    const team=prof.team||(MATRIX.idx.get(mSel)?.get(emp)?.team)||"";
+    if(!isLandingTeam(team)) return;
+    const dow=realToday.getDay();
+    if(dow===5||dow===6) return;
+    if(status==="Absent"){ absentToday++; return; }
+    attToday++;
+    if(status==="Late") lateToday++; else onTimeToday++;
+  });
+  wrap.style.display="";
+  document.getElementById("todayHint").textContent = `${shortYearLabel(mSel)} · day ${todayDay}`;
+  document.getElementById("todayCards").innerHTML=[["Attended",attToday,"today","var(--ok)","var(--okbg)","✓"],["Absent",absentToday,"today","var(--bad)","var(--badbg)","✗"],["On Time",onTimeToday,"today","var(--acc)","rgba(91,140,255,.12)","🕒"],["Late",lateToday,"today","var(--warn)","var(--warnbg)","⏰"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
+}
 // "Till date" cards shown on the collapsed PX Team-2026 landing view — current-progress
 // snapshot for the real calendar month, independent of the Attendance page's own filters.
 function renderLandingTillDate(){
@@ -667,7 +708,7 @@ function renderLandingTillDate(){
     if(day>todayDay) return;
     const prof=DATA.profiles?.[emp]||{};
     const team=prof.team||(MATRIX.idx.get(mSel)?.get(emp)?.team)||"";
-    if(isExcludedTeam(team)) return;
+    if(!isLandingTeam(team)) return;
     const dow=new Date(2026, monthIdx, day).getDay();
     if(dow===5||dow===6) return;
     if(status==="Absent"){ absentTillDate++; return; }
@@ -1092,7 +1133,7 @@ async function syncLiveRun(){
   }
   DATA.sailorManual=Object.keys(sailorManual).length?sailorManual:DATA.sailorManual;
   setPill(anySail?"live":"off");
-  buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderLandingTillDate();
+  buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderTodayCards(); renderLandingTillDate();
   $("#syncInfo").textContent=`Attendance: ZKTeco snapshot · Sailor's Report synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}`;
   toast(anySail ? "Sailor's Report sync complete" : "Sailor's Report sync unavailable");
 }
@@ -1529,6 +1570,7 @@ function onManualEntryCritChange(){ manEntryKey=document.getElementById("manCrit
   renderSailorCriteria(); renderSailorReport();
   renderManualEntryEditor();
   renderOvrLog();
+  renderTodayCards();
   renderLandingTillDate();
   updateMainVisibility();
   save();
