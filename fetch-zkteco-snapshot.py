@@ -198,7 +198,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--env", default=".env")
     ap.add_argument("--out", default="data.js")
-    ap.add_argument("--months", default=",".join(MONTH_NAMES[:8]))
+    ap.add_argument("--months", default=",".join(MONTH_NAMES[:9]))
     args = ap.parse_args()
 
     env = load_env(args.env)
