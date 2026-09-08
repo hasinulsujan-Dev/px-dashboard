@@ -450,28 +450,12 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
         <div class="team-ms" id="indivCritMs"><button class="ms-btn" id="indivCritMsBtn" onclick="toggleIndivMs('indivCrit')">All criteria ▾</button><div class="ms-menu ms-menu-wide" id="indivCritMsMenu"></div></div>
         <div class="team-ms" id="indivMonthMs"><button class="ms-btn" id="indivMonthMsBtn" onclick="toggleIndivMs('indivMonth')">All months ▾</button><div class="ms-menu" id="indivMonthMsMenu"></div></div>
         <button class="btn" onclick="resetIndividualFlagged()" title="Reset search" style="width:36px;height:36px;padding:0;justify-content:center;font-size:15px">↻</button>
-        <input type="text" id="indivSearchName" placeholder="Search a name…" oninput="renderIndividualFlagged()" autocomplete="off" style="width:200px;height:36px">
+        <label style="display:flex;align-items:center;gap:6px;height:36px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--mut);font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap"><input type="checkbox" id="indivShowAllCb" onchange="onIndivShowAllCheck(this)"> All Team Members</label>
+        <input type="text" id="indivSearchName" placeholder="Search a name…" oninput="onIndivSearchInput()" autocomplete="off" style="width:200px;height:36px">
       </div>
     </div>
     <div id="individualFlaggedCards" style="display:flex;flex-direction:column;gap:16px;padding:16px"></div>
     <div id="individualFlaggedEmpty" class="empty-state" style="padding:20px">Search a name, or pick specific criteria/months, to see who was flagged in 2 or more months.</div>
-  </div>
-  <div class="panel" style="margin-bottom:16px">
-    <div class="panel-h" style="align-items:center;gap:12px">
-      <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
-        <h3 style="white-space:nowrap;display:flex;align-items:center;gap:10px">
-          <span>Repeat Flags</span> <span class="badge b-info" id="sailorRepeatCount">0</span>
-          <button onclick="toggleSailorRepeatCollapse()" id="sailorRepeatChev" title="Expand/collapse" style="background:var(--card2);border:1px solid var(--line);color:var(--txt);cursor:pointer;width:64px;height:44px;padding:0;border-radius:8px;transition:background .15s;display:inline-flex;align-items:center;justify-content:center"><span id="sailorRepeatChevIcon" style="font-size:32px;line-height:1;display:inline-block;transition:transform .15s;transform:rotate(-90deg)">▾</span></button>
-        </h3>
-        <span class="hint">people flagged across 2 or more months · one card per person, with the criteria, values &amp; months involved</span>
-      </div>
-      <div style="display:flex;gap:6px;flex:none">
-        <input type="text" id="sailorRepeatSearch" list="employeeNamesDatalist" placeholder="Search a name…" oninput="filterSailorRepeatCards()" autocomplete="off" style="width:220px;height:34px;flex:none">
-        <button class="btn" onclick="refreshSailorRepeatCards()" title="Refresh the list" style="width:34px;height:34px;padding:0;justify-content:center;font-size:15px">↻</button>
-      </div>
-    </div>
-    <div id="sailorRepeatCards" style="display:none;flex-direction:column;gap:16px;padding:16px"></div>
-    <div id="sailorRepeatNoMatch" class="empty-state" style="padding:20px;display:none">No repeat-flagged person matches that search.</div>
   </div>
   <div class="panel" style="margin-bottom:16px">
     <div class="panel-h" style="align-items:center;gap:12px">
@@ -1361,7 +1345,9 @@ function renderSailorMatrix(){
     }).join("");
     return `<tr><td style="position:-webkit-sticky;position:sticky;left:0;z-index:1;background:${rowBg};font-weight:600;width:110px;max-width:110px;white-space:normal;font-size:11px;line-height:1.3;vertical-align:top;padding:8px 8px;border-right:2px solid var(--line);will-change:transform">${esc(c.criteria)}</td>${cells}</tr>`;
   }).join("");
-  renderSailorRepeatCards(criteria, months);
+  buildIndivCritMs();
+  buildIndivMonthMs();
+  renderIndividualFlagged();
 }
 let sailorMatrixCollapsed = true;
 function toggleSailorMatrixCollapse(){
@@ -1407,26 +1393,27 @@ function buildRepeatCardHTML(p){
       </div>
     </div>`;
 }
-function renderSailorRepeatCards(criteria, months){
-  const wrap = document.getElementById("sailorRepeatCards");
-  if(!wrap) return;
-  const repeats = computeSailorRepeats(criteria, months);
-  const countEl = document.getElementById("sailorRepeatCount");
-  if(countEl) countEl.textContent = String(repeats.length);
-  if(!repeats.length){
-    wrap.innerHTML = `<div class="empty-state" style="padding:20px">No one has been flagged across 2 or more months yet.</div>`;
-  } else {
-    wrap.innerHTML = repeats.map(buildRepeatCardHTML).join("");
-  }
-  filterSailorRepeatCards();
-  buildIndivCritMs();
-  buildIndivMonthMs();
-  renderIndividualFlagged();
-}
-
 /* ---- Individual Flagged: search by person / criteria / time frame (months) ---- */
 let indivCritSelection = new Set(); // empty = All criteria
 let indivMonthSelection = new Set(); // empty = All months
+let indivShowAll = false; // "All Team Members" — show everyone matching criteria/months, ignoring name
+function onIndivShowAllCheck(el){
+  indivShowAll = el.checked;
+  if(indivShowAll){
+    const search=document.getElementById("indivSearchName");
+    if(search) search.value="";
+  }
+  renderIndividualFlagged();
+}
+function onIndivSearchInput(){
+  const q=document.getElementById("indivSearchName")?.value.trim();
+  if(q){
+    indivShowAll=false;
+    const cb=document.getElementById("indivShowAllCb");
+    if(cb) cb.checked=false;
+  }
+  renderIndividualFlagged();
+}
 function positionIndivWideMenu(id){
   const menu=document.getElementById(id+"MsMenu");
   if(!menu || !menu.classList.contains("ms-menu-wide")) return;
@@ -1504,12 +1491,26 @@ function clearIndivCrit(){ indivCritSelection.clear(); buildIndivCritMs(); rende
 function buildIndivMonthMs(){
   const menu=document.getElementById("indivMonthMsMenu"), btn=document.getElementById("indivMonthMsBtn");
   if(!menu||!btn) return;
-  menu.innerHTML = SAILOR_MATRIX_MONTHS.map(m=>`<label class="ms-item"><input type="checkbox" value="${m}" ${indivMonthSelection.has(m)?"checked":""} onchange="onIndivMonthCheck(this)"> ${shortYearLabel(m)}</label>`).join("")
+  const allChecked = indivMonthSelection.size===0;
+  menu.innerHTML = `<label class="ms-item" style="font-weight:700;border-bottom:1px solid var(--line);margin-bottom:4px;padding-bottom:9px"><input type="checkbox" id="indivMonthAllCb" ${allChecked?"checked":""} onchange="onIndivMonthAllCheck(this)"> All Months</label>`
+    + SAILOR_MATRIX_MONTHS.map(m=>`<label class="ms-item"><input type="checkbox" data-month-item value="${m}" ${indivMonthSelection.has(m)?"checked":""} onchange="onIndivMonthCheck(this)"> ${shortYearLabel(m)}</label>`).join("")
     + `<div class="ms-foot"><button class="btn" onclick="clearIndivMonth()">Clear</button><button class="btn pri" onclick="closeIndivMs('indivMonth')">Done</button></div>`;
   btn.textContent = indivMonthLabel() + " ▾";
 }
+function onIndivMonthAllCheck(el){
+  if(el.checked){
+    indivMonthSelection.clear();
+    document.querySelectorAll('#indivMonthMsMenu input[data-month-item]').forEach(cb=>{ cb.checked=false; });
+  } else {
+    el.checked=true; // "All Months" is the neutral state — nothing meaningful to switch to by unchecking it directly
+  }
+  document.getElementById("indivMonthMsBtn").textContent = indivMonthLabel() + " ▾";
+  renderIndividualFlagged();
+}
 function onIndivMonthCheck(el){
   if(el.checked) indivMonthSelection.add(el.value); else indivMonthSelection.delete(el.value);
+  const allCb=document.getElementById("indivMonthAllCb");
+  if(allCb) allCb.checked = indivMonthSelection.size===0;
   document.getElementById("indivMonthMsBtn").textContent = indivMonthLabel() + " ▾";
   renderIndividualFlagged();
 }
@@ -1519,6 +1520,9 @@ function resetIndividualFlagged(){
   if(search) search.value="";
   indivCritSelection.clear();
   indivMonthSelection.clear();
+  indivShowAll=false;
+  const allCb=document.getElementById("indivShowAllCb");
+  if(allCb) allCb.checked=false;
   buildIndivCritMs();
   buildIndivMonthMs();
   renderIndividualFlagged();
@@ -1530,7 +1534,7 @@ function renderIndividualFlagged(){
   const countEl=document.getElementById("individualFlaggedCount");
   if(!wrap) return;
   const q=(document.getElementById("indivSearchName")?.value||"").trim().toLowerCase();
-  const hasFilter = !!q || indivCritSelection.size>0 || indivMonthSelection.size>0;
+  const hasFilter = indivShowAll || !!q || indivCritSelection.size>0 || indivMonthSelection.size>0;
   if(!hasFilter){
     wrap.innerHTML="";
     if(countEl) countEl.style.display="none";
@@ -1550,37 +1554,6 @@ function renderIndividualFlagged(){
   }
   if(empty) empty.style.display="none";
   wrap.innerHTML = repeats.map(buildRepeatCardHTML).join("");
-}
-
-let sailorRepeatCollapsed = true;
-function toggleSailorRepeatCollapse(){
-  sailorRepeatCollapsed = !sailorRepeatCollapsed;
-  const el = document.getElementById("sailorRepeatCards");
-  const noMatch = document.getElementById("sailorRepeatNoMatch");
-  const chevIcon = document.getElementById("sailorRepeatChevIcon");
-  if(chevIcon) chevIcon.style.transform = sailorRepeatCollapsed ? "rotate(-90deg)" : "rotate(0deg)";
-  if(el) el.style.display = sailorRepeatCollapsed ? "none" : "flex";
-  if(noMatch && sailorRepeatCollapsed) noMatch.style.display = "none";
-  else filterSailorRepeatCards();
-}
-function filterSailorRepeatCards(){
-  const noMatch = document.getElementById("sailorRepeatNoMatch");
-  if(sailorRepeatCollapsed){ if(noMatch) noMatch.style.display = "none"; return; }
-  const q = (document.getElementById("sailorRepeatSearch")?.value||"").trim().toLowerCase();
-  const cards = [...document.querySelectorAll("#sailorRepeatCards > div[data-name]")];
-  let visible = 0;
-  cards.forEach(card=>{
-    const match = !q || (card.dataset.name||"").toLowerCase().includes(q);
-    card.style.display = match ? "" : "none";
-    if(match) visible++;
-  });
-  if(noMatch) noMatch.style.display = (cards.length && !visible) ? "" : "none";
-}
-function refreshSailorRepeatCards(){
-  const search = document.getElementById("sailorRepeatSearch");
-  if(search) search.value = "";
-  renderSailorMatrix();
-  toast("Repeat Flags refreshed");
 }
 
 /* ---- criteria editor (titles only; calculated columns stay linked by key) ---- */
