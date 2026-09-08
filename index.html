@@ -196,6 +196,8 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 .team-ms .ms-btn{height:36px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--mut);font-weight:600;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
 .team-ms.open .ms-btn{border-color:var(--acc);color:var(--txt)}
 .team-ms .ms-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:220px;max-height:280px;overflow:auto;padding:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);display:none;z-index:20}
+.team-ms .ms-menu.ms-menu-wide{position:fixed;min-width:420px;max-width:min(480px,calc(100vw - 40px));right:0;left:auto;z-index:60}
+.team-ms .ms-menu.ms-menu-wide .ms-item{white-space:normal;line-height:1.35}
 .team-ms.open .ms-menu{display:block}
 .team-ms .ms-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;color:var(--txt);cursor:pointer}
 .team-ms .ms-item:hover{background:var(--card2)}
@@ -438,6 +440,22 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 
 <!-- ================= SAILOR'S REPORT (Reports menu) ================= -->
 <section class="view" id="view-sailorreport">
+  <div class="panel" style="margin-bottom:16px">
+    <div class="panel-h" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
+        <h3 style="white-space:nowrap">Individual Flagged <span class="badge b-info" id="individualFlaggedCount" style="display:none">0</span></h3>
+        <span class="hint">search a person, criteria &amp; time frame · only people flagged in 2 or more of the selected months show up · a repeat within one criterion across months counts too</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="team-ms" id="indivCritMs"><button class="ms-btn" id="indivCritMsBtn" onclick="toggleIndivMs('indivCrit')">All criteria ▾</button><div class="ms-menu ms-menu-wide" id="indivCritMsMenu"></div></div>
+        <div class="team-ms" id="indivMonthMs"><button class="ms-btn" id="indivMonthMsBtn" onclick="toggleIndivMs('indivMonth')">All months ▾</button><div class="ms-menu" id="indivMonthMsMenu"></div></div>
+        <button class="btn" onclick="resetIndividualFlagged()" title="Reset search" style="width:36px;height:36px;padding:0;justify-content:center;font-size:15px">↻</button>
+        <input type="text" id="indivSearchName" placeholder="Search a name…" oninput="renderIndividualFlagged()" autocomplete="off" style="width:200px;height:36px">
+      </div>
+    </div>
+    <div id="individualFlaggedCards" style="display:flex;flex-direction:column;gap:16px;padding:16px"></div>
+    <div id="individualFlaggedEmpty" class="empty-state" style="padding:20px">Search a name, or pick specific criteria/months, to see who was flagged in 2 or more months.</div>
+  </div>
   <div class="panel" style="margin-bottom:16px">
     <div class="panel-h" style="align-items:center;gap:12px">
       <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
@@ -1371,17 +1389,8 @@ function computeSailorRepeats(criteria, months){
     .map(([name,p])=>({name, monthCount:p.monthsSet.size, byCriterion:[...p.byCriterion.entries()]}))
     .sort((a,b)=> b.monthCount-a.monthCount || a.name.localeCompare(b.name));
 }
-function renderSailorRepeatCards(criteria, months){
-  const wrap = document.getElementById("sailorRepeatCards");
-  if(!wrap) return;
-  const repeats = computeSailorRepeats(criteria, months);
-  const countEl = document.getElementById("sailorRepeatCount");
-  if(countEl) countEl.textContent = String(repeats.length);
-  if(!repeats.length){
-    wrap.innerHTML = `<div class="empty-state" style="padding:20px">No one has been flagged across 2 or more months yet.</div>`;
-    return;
-  }
-  wrap.innerHTML = repeats.map(p=>`
+function buildRepeatCardHTML(p){
+  return `
     <div data-name="${esc(p.name)}" style="border:1px solid var(--line);border-radius:14px;padding:20px;background:var(--card2)">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px">
         <b style="font-size:17px">${esc(p.name)}</b>
@@ -1396,9 +1405,153 @@ function renderSailorRepeatCards(criteria, months){
             </div>
           </div>`).join("")}
       </div>
-    </div>`).join("");
-  filterSailorRepeatCards();
+    </div>`;
 }
+function renderSailorRepeatCards(criteria, months){
+  const wrap = document.getElementById("sailorRepeatCards");
+  if(!wrap) return;
+  const repeats = computeSailorRepeats(criteria, months);
+  const countEl = document.getElementById("sailorRepeatCount");
+  if(countEl) countEl.textContent = String(repeats.length);
+  if(!repeats.length){
+    wrap.innerHTML = `<div class="empty-state" style="padding:20px">No one has been flagged across 2 or more months yet.</div>`;
+  } else {
+    wrap.innerHTML = repeats.map(buildRepeatCardHTML).join("");
+  }
+  filterSailorRepeatCards();
+  buildIndivCritMs();
+  buildIndivMonthMs();
+  renderIndividualFlagged();
+}
+
+/* ---- Individual Flagged: search by person / criteria / time frame (months) ---- */
+let indivCritSelection = new Set(); // empty = All criteria
+let indivMonthSelection = new Set(); // empty = All months
+function positionIndivWideMenu(id){
+  const menu=document.getElementById(id+"MsMenu");
+  if(!menu || !menu.classList.contains("ms-menu-wide")) return;
+  const btn=document.getElementById(id+"MsBtn");
+  if(!btn) return;
+  const r=btn.getBoundingClientRect();
+  const menuWidth=420;
+  let left=r.left;
+  if(left+menuWidth > window.innerWidth-10) left=window.innerWidth-menuWidth-10;
+  if(left<10) left=10;
+  menu.style.top=(r.bottom+6)+"px";
+  menu.style.left=left+"px";
+  menu.style.right="auto";
+}
+function toggleIndivMs(id){
+  const el=document.getElementById(id+"Ms");
+  if(!el) return;
+  const opening = !el.classList.contains("open");
+  el.classList.toggle("open", opening);
+  if(opening) positionIndivWideMenu(id);
+}
+// Fixed-position dropdowns don't scroll with the page by default — re-anchor them to their
+// button on every scroll (any scroll container, via capture) so they visually stick to it.
+document.addEventListener('scroll', ()=>{
+  ["indivCrit","indivMonth"].forEach(id=>{
+    const el=document.getElementById(id+"Ms");
+    if(el && el.classList.contains("open")) positionIndivWideMenu(id);
+  });
+}, {capture:true, passive:true});
+function closeIndivMs(id){ const el=document.getElementById(id+"Ms"); if(el) el.classList.remove("open"); }
+document.addEventListener('click', e=>{
+  ["indivCrit","indivMonth"].forEach(id=>{
+    const ms=document.getElementById(id+"Ms");
+    if(ms && !ms.contains(e.target)) ms.classList.remove("open");
+  });
+});
+function indivCritLabel(){
+  if(!indivCritSelection.size) return "All criteria";
+  if(indivCritSelection.size===1) return "1 criterion";
+  return indivCritSelection.size+" criteria";
+}
+function indivMonthLabel(){
+  if(!indivMonthSelection.size) return "All months";
+  if(indivMonthSelection.size===1) return shortYearLabel([...indivMonthSelection][0]);
+  return indivMonthSelection.size+" months";
+}
+function buildIndivCritMs(){
+  const menu=document.getElementById("indivCritMsMenu"), btn=document.getElementById("indivCritMsBtn");
+  if(!menu||!btn) return;
+  const list=getSailorCriteriaList();
+  const allChecked = indivCritSelection.size===0;
+  menu.innerHTML = `<label class="ms-item" style="font-weight:700;border-bottom:1px solid var(--line);margin-bottom:4px;padding-bottom:9px"><input type="checkbox" id="indivCritAllCb" ${allChecked?"checked":""} onchange="onIndivCritAllCheck(this)"> All Criteria</label>`
+    + list.map(c=>`<label class="ms-item"><input type="checkbox" data-crit-item value="${esc(c.criteria)}" ${indivCritSelection.has(c.criteria)?"checked":""} onchange="onIndivCritCheck(this)"> ${esc(c.criteria)}</label>`).join("")
+    + `<div class="ms-foot"><button class="btn" onclick="clearIndivCrit()">Clear</button><button class="btn pri" onclick="closeIndivMs('indivCrit')">Done</button></div>`;
+  btn.textContent = indivCritLabel() + " ▾";
+}
+function onIndivCritAllCheck(el){
+  if(el.checked){
+    indivCritSelection.clear();
+    document.querySelectorAll('#indivCritMsMenu input[data-crit-item]').forEach(cb=>{ cb.checked=false; });
+  } else {
+    el.checked=true; // "All Criteria" is the neutral state — nothing meaningful to switch to by unchecking it directly
+  }
+  document.getElementById("indivCritMsBtn").textContent = indivCritLabel() + " ▾";
+  renderIndividualFlagged();
+}
+function onIndivCritCheck(el){
+  if(el.checked) indivCritSelection.add(el.value); else indivCritSelection.delete(el.value);
+  const allCb=document.getElementById("indivCritAllCb");
+  if(allCb) allCb.checked = indivCritSelection.size===0;
+  document.getElementById("indivCritMsBtn").textContent = indivCritLabel() + " ▾";
+  renderIndividualFlagged();
+}
+function clearIndivCrit(){ indivCritSelection.clear(); buildIndivCritMs(); renderIndividualFlagged(); }
+function buildIndivMonthMs(){
+  const menu=document.getElementById("indivMonthMsMenu"), btn=document.getElementById("indivMonthMsBtn");
+  if(!menu||!btn) return;
+  menu.innerHTML = SAILOR_MATRIX_MONTHS.map(m=>`<label class="ms-item"><input type="checkbox" value="${m}" ${indivMonthSelection.has(m)?"checked":""} onchange="onIndivMonthCheck(this)"> ${shortYearLabel(m)}</label>`).join("")
+    + `<div class="ms-foot"><button class="btn" onclick="clearIndivMonth()">Clear</button><button class="btn pri" onclick="closeIndivMs('indivMonth')">Done</button></div>`;
+  btn.textContent = indivMonthLabel() + " ▾";
+}
+function onIndivMonthCheck(el){
+  if(el.checked) indivMonthSelection.add(el.value); else indivMonthSelection.delete(el.value);
+  document.getElementById("indivMonthMsBtn").textContent = indivMonthLabel() + " ▾";
+  renderIndividualFlagged();
+}
+function clearIndivMonth(){ indivMonthSelection.clear(); buildIndivMonthMs(); renderIndividualFlagged(); }
+function resetIndividualFlagged(){
+  const search=document.getElementById("indivSearchName");
+  if(search) search.value="";
+  indivCritSelection.clear();
+  indivMonthSelection.clear();
+  buildIndivCritMs();
+  buildIndivMonthMs();
+  renderIndividualFlagged();
+  toast("Individual Flagged reset");
+}
+function renderIndividualFlagged(){
+  const wrap=document.getElementById("individualFlaggedCards");
+  const empty=document.getElementById("individualFlaggedEmpty");
+  const countEl=document.getElementById("individualFlaggedCount");
+  if(!wrap) return;
+  const q=(document.getElementById("indivSearchName")?.value||"").trim().toLowerCase();
+  const hasFilter = !!q || indivCritSelection.size>0 || indivMonthSelection.size>0;
+  if(!hasFilter){
+    wrap.innerHTML="";
+    if(countEl) countEl.style.display="none";
+    if(empty){ empty.textContent="Search a name, or pick specific criteria/months, to see who was flagged in 2 or more months."; empty.style.display=""; }
+    return;
+  }
+  const allCriteria=getSailorCriteriaList();
+  const criteria = indivCritSelection.size ? allCriteria.filter(c=>indivCritSelection.has(c.criteria)) : allCriteria;
+  const months = indivMonthSelection.size ? SAILOR_MATRIX_MONTHS.filter(m=>indivMonthSelection.has(m)) : SAILOR_MATRIX_MONTHS;
+  let repeats = computeSailorRepeats(criteria, months);
+  if(q) repeats = repeats.filter(p=>p.name.toLowerCase().includes(q));
+  if(countEl){ countEl.style.display=""; countEl.textContent=String(repeats.length); }
+  if(!repeats.length){
+    wrap.innerHTML="";
+    if(empty){ empty.textContent="No one matches these filters."; empty.style.display=""; }
+    return;
+  }
+  if(empty) empty.style.display="none";
+  wrap.innerHTML = repeats.map(buildRepeatCardHTML).join("");
+}
+
 let sailorRepeatCollapsed = true;
 function toggleSailorRepeatCollapse(){
   sailorRepeatCollapsed = !sailorRepeatCollapsed;
