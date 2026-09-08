@@ -264,7 +264,12 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
         <div class="side-group-sub" id="rawdataSub">
           <button class="side-tab on" data-v="att">Attendance- Raw data</button>
           <button class="side-tab" data-v="sail">Sailor's Raw data</button>
-          <button class="side-tab" data-v="db">Data Editor <span class="cnt" id="ovrCount">0</span></button>
+        </div>
+      </div>
+      <div class="side-group" id="dataEditorGroup">
+        <button class="side-group-btn" id="dataEditorGroupBtn" onclick="toggleSideGroup('dataEditor')"><span>✎ Data Editor</span><span class="dot"></span><span class="chev">▸</span></button>
+        <div class="side-group-sub" id="dataEditorSub">
+          <button class="side-tab" data-v="db">Sailor's Raw— Manual Entries <span class="cnt" id="ovrCount">0</span></button>
         </div>
       </div>
     </div>
