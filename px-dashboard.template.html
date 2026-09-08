@@ -86,6 +86,7 @@ main{padding:26px 24px 80px;min-width:0;width:100%}
 
 /* ---------- KPI ---------- */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:14px;margin-bottom:20px}
+.kpis-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
 .kpi::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--kc,var(--acc))}
 .kpi .lbl{font-size:11.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mut)}
@@ -275,6 +276,14 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </aside>
 
 <main>
+<!-- ================= LANDING (shown while PX Team-2026 is collapsed) ================= -->
+<div id="landingHome">
+  <div id="landingTillDateWrap" style="display:none">
+    <div id="landingTillDateHint" style="font-size:12px;color:var(--mut);margin:0 0 10px 2px"></div>
+    <div class="kpis-2col" id="landingTillDateCards"></div>
+  </div>
+</div>
+<div id="pageViews" style="display:none">
 <!-- ================= ATTENDANCE ================= -->
 <section class="view on" id="view-att">
   <div class="kpis" id="kpis"></div>
@@ -474,6 +483,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     </div>
   </div>
 </section>
+</div>
 </main>
 
 <footer>PX Team Dashboard-2026 · v1 · Data: ZKTeco BioTime Attendance snapshot &amp; Sailor's Report-2026 with Sample Data · Weekends: Fri &amp; Sat</footer>
@@ -578,13 +588,20 @@ document.querySelectorAll(".side-tab").forEach(t=>t.onclick=()=>{
   document.querySelectorAll(".side-tab").forEach(x=>x.classList.toggle("on",x===t));
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id==="view-"+t.dataset.v));
   document.querySelectorAll(".side-group-btn").forEach(g=>g.classList.toggle("has-active", g.parentElement.querySelector(".side-tab.on")!=null));
+  anyPageSelected = true;
   updateMainVisibility();
 });
 let year2026Open = false;
+// Whether the visitor has clicked into an actual page (Attendance-Raw data, Sailor's Raw
+// data, Data Editor, Sailor's Report, PX Report) yet — until then the main area shows the
+// landing "till date" cards regardless of whether the PX Team-2026 sidebar group is expanded.
+let anyPageSelected = false;
 function updateMainVisibility(){
   if(YEAR!=="2026") return;
-  const main=document.querySelector("main");
-  if(main) main.style.display = year2026Open ? "" : "none";
+  const landing=document.getElementById("landingHome");
+  const pages=document.getElementById("pageViews");
+  if(landing) landing.style.display = anyPageSelected ? "none" : "";
+  if(pages) pages.style.display = anyPageSelected ? "" : "none";
 }
 function toggleYear2026(e){
   if(YEAR!=="2026") return true; // let the link navigate to switch year
@@ -592,6 +609,9 @@ function toggleYear2026(e){
   year2026Open = !year2026Open;
   document.getElementById("year2026Sub").classList.toggle("open", year2026Open);
   document.getElementById("year2026Chev").textContent = year2026Open ? "▴" : "▾";
+  // Clicking "PX Team-2026" itself always acts as "home" — back to the till-date cards,
+  // even if a page (Attendance, Sailor's Report, etc.) was already open.
+  anyPageSelected = false;
   updateMainVisibility();
   return false;
 }
@@ -624,6 +644,40 @@ function populateMonthSelect(){ const sel=document.getElementById("attMonthSel")
 
 const ALL_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 function getPreviousMonthName(){ return ALL_MONTHS[(new Date().getMonth()-1+12)%12]; }
+function getCurrentMonthName(){ return ALL_MONTHS[new Date().getMonth()]; }
+// "Till date" cards shown on the collapsed PX Team-2026 landing view — current-progress
+// snapshot for the real calendar month, independent of the Attendance page's own filters.
+function renderLandingTillDate(){
+  const wrap=document.getElementById("landingTillDateWrap");
+  if(!wrap) return;
+  const realToday=new Date();
+  const mSel=ALL_MONTHS[realToday.getMonth()];
+  if(realToday.getFullYear()!==2026 || !(DATA.months||[]).includes(mSel)){
+    wrap.style.display="none";
+    return;
+  }
+  const monthIdx=realToday.getMonth();
+  const todayDay=realToday.getDate();
+  let wdTillDate=0;
+  for(let d=1; d<=todayDay; d++){ const dow=new Date(2026, monthIdx, d).getDay(); if(dow!==5 && dow!==6) wdTillDate++; }
+  let attTillDate=0, absentTillDate=0, lateTillDate=0, onTimeTillDate=0;
+  (DATA.daily[mSel]||[]).forEach(d=>{
+    const emp=d[0], dateStr=d[1], status=d[4];
+    const day=parseInt(dateStr.split("/")[1],10);
+    if(day>todayDay) return;
+    const prof=DATA.profiles?.[emp]||{};
+    const team=prof.team||(MATRIX.idx.get(mSel)?.get(emp)?.team)||"";
+    if(isExcludedTeam(team)) return;
+    const dow=new Date(2026, monthIdx, day).getDay();
+    if(dow===5||dow===6) return;
+    if(status==="Absent"){ absentTillDate++; return; }
+    attTillDate++;
+    if(status==="Late") lateTillDate++; else onTimeTillDate++;
+  });
+  wrap.style.display="";
+  document.getElementById("landingTillDateHint").textContent = `${shortYearLabel(mSel)} — till date (through day ${todayDay}, ${wdTillDate} workdays so far)`;
+  document.getElementById("landingTillDateCards").innerHTML=[["Attended",attTillDate,"till date this month","var(--ok)","var(--okbg)","✓"],["Absent",absentTillDate,"till date this month","var(--bad)","var(--badbg)","✗"],["On Time",onTimeTillDate,"till date this month","var(--acc)","rgba(91,140,255,.12)","🕒"],["Late",lateTillDate,"till date this month","var(--warn)","var(--warnbg)","⏰"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
+}
 function fmtDuration(h){ if(h==null) return "—"; const sec=Math.round(h*3600); const hh=String(Math.floor(sec/3600)).padStart(2,"0"); const mm=String(Math.floor((sec%3600)/60)).padStart(2,"0"); const ss=String(sec%60).padStart(2,"0"); return `${hh}:${mm}:${ss}`; }
 
 function buildMatrix(){
@@ -1038,7 +1092,7 @@ async function syncLiveRun(){
   }
   DATA.sailorManual=Object.keys(sailorManual).length?sailorManual:DATA.sailorManual;
   setPill(anySail?"live":"off");
-  buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor();
+  buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderLandingTillDate();
   $("#syncInfo").textContent=`Attendance: ZKTeco snapshot · Sailor's Report synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}`;
   toast(anySail ? "Sailor's Report sync complete" : "Sailor's Report sync unavailable");
 }
@@ -1463,16 +1517,19 @@ function onManualEntryCritChange(){ manEntryKey=document.getElementById("manCrit
     const pill=document.getElementById("syncPill"); if(pill){ pill.className="badge b-mut"; pill.textContent="● 2027 stub"; pill.disabled=true; }
     const si2=document.getElementById("syncInfo"); if(si2) si2.textContent="PX Team Dashboard-2027 · Coming next phase — no data yet";
     const attSel2027=document.getElementById("attMonthSel"); if(attSel2027) attSel2027.value=getPreviousMonthName();
+    const lh2027=document.getElementById("landingHome"); if(lh2027) lh2027.style.display="none";
+    const pv2027=document.getElementById("pageViews"); if(pv2027) pv2027.style.display="";
     renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderOvrLog(); save();
     return;
   }
   populateMonthSelect();
-  const attSel=document.getElementById("attMonthSel"); if(attSel) attSel.value=getPreviousMonthName();
+  const attSel=document.getElementById("attMonthSel"); if(attSel) attSel.value=getCurrentMonthName();
   buildTeamMs();
   refreshMatrix(); renderAtt();
   renderSailorCriteria(); renderSailorReport();
   renderManualEntryEditor();
   renderOvrLog();
+  renderLandingTillDate();
   updateMainVisibility();
   save();
  }catch(e){ console.error(e);}
