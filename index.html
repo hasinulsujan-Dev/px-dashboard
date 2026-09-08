@@ -587,6 +587,15 @@ const isExcludedTeam = team => /^support staff/i.test(team||"") || /^temporary/i
 // anything else (Support Staff, Temporary, or any unexpected team name) is ignored there.
 const LANDING_TEAMS = ["exabyting office","bkash","exabyting remote"];
 const isLandingTeam = team => LANDING_TEAMS.includes(String(team||"").trim().toLowerCase());
+// Monthly Attendance (the daily-row table on Attendance-Raw data) also pulls Support Staff,
+// since that data is needed for future reports — but Temporary and anything else stays out.
+// Summary, Sailor's Raw data, and every Sailor's Report section keep excluding Support Staff
+// via isExcludedTeam above.
+const MONTHLY_ATTENDANCE_TEAMS = ["exabyting office","bkash","exabyting remote"];
+const isMonthlyAttendanceTeam = team => {
+  const t=String(team||"").trim().toLowerCase();
+  return MONTHLY_ATTENDANCE_TEAMS.includes(t) || t.startsWith("support staff");
+};
 
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),2200); }
 
@@ -882,9 +891,10 @@ function renderAtt(){
     const avgMore9 = agg && agg.avg!=null && agg.avg>9 ? agg.avg.toFixed(2)+"h" : "—";
     rows.push({emp,name:nameV,perks:perksV,team:teamV,date:dateStr,weekFlag:dowLabel,cin,cout,status,early,workStr,avgLess8,avgLess9,avgMore9,agg});
   }
-  // Filters — Support Staff excluded for Monthly Attendance & Summary for all months
+  // Filters — Monthly Attendance keeps Support Staff (needed for future reports) but still
+  // drops Temporary and anything else; Summary/Sailor's Report keep excluding Support Staff.
   rows = rows.filter(r=>{
-    if(isExcludedTeam(r.team||"")) return false;
+    if(!isMonthlyAttendanceTeam(r.team||"")) return false;
     if(onsite && !isOnsite({perks:r.perks,team:r.team})) return false;
     if(teamSelection.size && !teamSelection.has(r.team)) return false;
     if(statusF && r.status!==statusF) return false;
@@ -921,8 +931,10 @@ function renderAtt(){
   // KPIs for this month — unique-person math; update across all months as filters change
   const flat = rows;
   const distinct = new Set(rows.map(r=>r.emp)).size;
-  // Unique attendees: employees with att>0 this month (per Employee ID)
-  const attEmps = new Set(rows.filter(r=>r.cin!=null).map(r=>r.emp));
+  // Unique attendees: employees with att>0 this month (per Employee ID) — stays ex Support
+  // Staff, matching the "Total Employees" KPI it's shown alongside (rows itself now also
+  // includes Support Staff, since Monthly Attendance keeps that data).
+  const attEmps = new Set(rows.filter(r=>r.cin!=null && !isExcludedTeam(r.team||"")).map(r=>r.emp));
   const uniqueAtt = attEmps.size;
   // Calendar working days for this month (Fri & Sat excluded) — not per-employee
   const ym = mSel;
