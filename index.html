@@ -516,13 +516,10 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
       </table>
     </div>
   </div>
-  <div class="toolbar">
-    <select id="sailorReportMonthSel" onchange="onSailorReportMonthChange()" style="height:36px"></select>
-  </div>
   <div class="panel">
     <div class="panel-h">
       <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
-        <h3 style="white-space:nowrap">Sailor's Report <span id="sailorReportMonthLbl"></span></h3>
+        <h3 style="white-space:nowrap;display:flex;align-items:center;gap:8px">Sailor's Report <select id="sailorReportMonthSel" onchange="onSailorReportMonthChange()" style="padding:6px 10px;line-height:1.4;font-size:13.5px;font-weight:600"></select></h3>
         <span class="hint">criteria down the side, each with the people flagged for it · calculated from the same logic as Sailor's Raw data</span>
       </div>
     </div>
@@ -1336,8 +1333,6 @@ function renderSailorReport(){
     if(!sel.options.length) sel.innerHTML = ALL_MONTHS.map(m=>`<option value="${m}">${shortYearLabel(m)}</option>`).join("");
     sel.value = sailorReportMonth;
   }
-  const lbl=document.getElementById("sailorReportMonthLbl"); if(lbl) lbl.textContent = shortYearLabel(sailorReportMonth);
-
   const tbody=document.querySelector("#sailorReportTbl tbody");
   if(!tbody) return;
   const criteria=getSailorCriteriaList();
