@@ -37,9 +37,11 @@ select option{background:var(--card);color:var(--txt)}
 header.top{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .top-in{max-width:1280px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:16px}
 .logo{width:38px;height:38px;border-radius:11px;background:var(--grad);display:grid;place-items:center;font-weight:800;color:#fff;font-size:15px;letter-spacing:-.5px;box-shadow:0 4px 14px rgba(91,140,255,.4)}
-.brand h1{font-size:17px;font-weight:600;letter-spacing:-0.02em}
-.brand p{font-size:11.5px;color:var(--mut);margin-top:1px}
+.brand{min-width:0}
+.brand h1{font-size:17px;font-weight:600;letter-spacing:-0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand p{font-size:11.5px;color:var(--mut);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .spacer{flex:1}
+.hdr-actions{display:contents}
 .theme-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;color:var(--mut)}
 .theme-btn:hover{color:var(--txt);border-color:var(--acc)}
 .theme-toggle{display:inline-flex;align-items:center;gap:8px;height:32px;padding:4px 10px;border:1px solid var(--line);border-radius:20px;background:var(--card2);color:var(--mut);font-weight:700;font-size:11px;letter-spacing:0.04em;text-transform:uppercase}
@@ -240,13 +242,19 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 .years a.stub .badge{margin-left:auto;font-size:10px;padding:1px 6px}
 .foot-note{margin-top:18px;font-size:11px;color:var(--dim);line-height:1.5;padding:0 6px}
 @media(min-width:721px) and (max-width:900px){ .layout{grid-template-columns:1fr} .layout.sidebar-collapsed{grid-template-columns:1fr} .sidebar{position:relative;height:auto;border-right:none;border-bottom:1px solid var(--line)} .sidebar-toggle{right:14px} }
-@media(max-width:720px){.top-in{padding:12px 14px}main{padding:18px 14px 60px}
+@media(max-width:720px){.top-in{padding:12px 14px;flex-wrap:wrap;row-gap:10px}main{padding:18px 14px 60px}
   .layout{grid-template-columns:1fr}
   .hamburger-btn{display:flex}
   .sidebar-toggle{display:none}
   .sidebar{position:fixed;top:0;left:0;height:100vh;width:min(80vw,280px);max-width:280px;z-index:99;transform:translateX(-100%);transition:transform .22s ease;box-shadow:var(--shadow-lg);background:var(--bg)}
   .sidebar.mobile-open{transform:translateX(0)}
   .sidebar-backdrop.on{display:block}
+  .hamburger-btn{order:1}
+  .logo{order:2}
+  .brand{order:3;flex:1 1 auto}
+  #themeToggle{order:4}
+  .spacer{order:5;flex-basis:100%;height:0}
+  .hdr-actions{order:6;display:flex;flex-direction:column;align-items:flex-end;gap:8px;margin-left:auto;width:100%}
 }
 </style>
 </head>
@@ -258,11 +266,13 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     <div class="logo">PX</div>
     <div class="brand">
       <h1 id="dashTitle">PX Team Dashboard-2026</h1>
-      <p id="syncInfo">Attendance &amp; Sailor's Report · Jan-2026 … Dec-2026</p>
+      <p id="syncInfo">Jan-2026 - Dec-2026</p>
     </div>
     <div class="spacer"></div>
-    <button class="badge b-mut" id="syncPill" title="Reload the Attendance data.js snapshot (regenerated periodically from the ZKTeco BioTime API)" onclick="syncLive()">● zkteco-api sync</button>
-    <button class="btn" onclick="exportAll()"><span data-icon="download"></span> Export</button>
+    <div class="hdr-actions">
+      <button class="badge b-mut" id="syncPill" title="Reload the Attendance data.js snapshot (regenerated periodically from the ZKTeco BioTime API)" onclick="syncLive()">● zkteco-api sync</button>
+      <button class="btn" onclick="exportAll()"><span data-icon="download"></span> Export</button>
+    </div>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Switch theme" aria-label="Switch between Light and Dark mode">
       <span class="track"><span class="thumb"></span></span>
       <span class="label"><span class="on">Dark</span><span class="off">Light</span></span>
@@ -538,7 +548,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1788932075"></script>
+<script src="data.js?v=1788935338"></script>
 <script>
 
 /* ============ icon system — Feather-style inline SVGs, single stroke width/style
@@ -739,7 +749,7 @@ function applyYearChrome(){
   if(a27) a27.setAttribute("aria-current", y==="2027"?"page":"false");
   if(banner) banner.style.display = (y==="2027" ? "block" : "none");
   // Update header syncInfo year range and footer year
-  const si=document.getElementById("syncInfo"); if(si) si.textContent="Attendance & Sailor's Report · Jan-"+y+" … Dec-"+y;
+  const si=document.getElementById("syncInfo"); if(si) si.textContent="Jan-"+y+" - Dec-"+y;
   const foot=document.querySelector("footer"); if(foot) foot.textContent=foot.textContent.replace(/PX Team Dashboard[^·]*·/, dashLabel+" ·");
 }
 function populateMonthSelect(){ const sel=document.getElementById("attMonthSel"); if(!sel) return; [...sel.options].forEach(o=>o.textContent=shortYearLabel(o.value)); }
