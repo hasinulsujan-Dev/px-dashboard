@@ -194,6 +194,51 @@ def build_month_data(year, month_num, transactions, emp_directory):
     return daily_rows, employees_agg
 
 
+def sync_current_month(env_path=".env", out_path="data.js", today=None, log=lambda *a: None):
+    """Refetch just today's month from BioTime and merge it into the existing data.js,
+    leaving every other month untouched. This is what the dashboard's "zkteco-api sync"
+    button triggers (via serve.py's /api/sync-now) to show today's punches instead of
+    waiting for the next full periodic run of main()."""
+    today = today or date.today()
+    month_name = MONTH_NAMES[today.month - 1]
+
+    env = load_env(env_path)
+    base_url = env["BIOTIME_BASE_URL"].rstrip("/")
+    username = env["BIOTIME_USERNAME"]
+    password = env["BIOTIME_PASSWORD"]
+
+    log(f"Authenticating with {base_url} ...")
+    token = authenticate(base_url, username, password)
+    emp_directory = fetch_employee_directory(base_url, token)
+
+    log(f"Fetching transactions for {month_name} {today.year}...")
+    txns = fetch_month_transactions(base_url, token, today.year, today.month)
+    daily_rows, employees_agg = build_month_data(today.year, today.month, txns, emp_directory)
+
+    profiles = {}
+    for emp_code, p in emp_directory.items():
+        profiles[p["id"]] = {"name": p["name"], "perks": p["perks"], "team": p["team"]}
+
+    with open(out_path) as f:
+        old_content = f.read()
+    old_json_str = old_content.split("=", 1)[1].strip()
+    if old_json_str.endswith(";"):
+        old_json_str = old_json_str[:-1]
+    data = json.loads(old_json_str)
+
+    if month_name not in data.get("months", []):
+        data.setdefault("months", []).append(month_name)
+    data.setdefault("employees", {})[month_name] = employees_agg
+    data.setdefault("daily", {})[month_name] = daily_rows
+    data["profiles"] = profiles
+
+    with open(out_path, "w") as f:
+        f.write("const DATA = " + json.dumps(data, separators=(",", ":")) + ";\n")
+
+    bump_data_js_cache_version()
+    return month_name, len(employees_agg)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--env", default=".env")

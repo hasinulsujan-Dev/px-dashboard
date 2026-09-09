@@ -107,6 +107,9 @@ main{padding:26px 24px 80px;min-width:0;width:100%}
 .stick-l{position:sticky;z-index:1;background:var(--card)}
 thead .stick-l{z-index:4;background:var(--card2)}
 table{width:100%;border-collapse:collapse;font-size:13px}
+/* border-collapse:collapse is a known source of sticky-cell rendering glitches in
+   Chromium/WebKit; this table has a sticky Criteria column, so play it safe. */
+#sailorMatrixTbl{border-collapse:separate;border-spacing:0}
 thead th{position:sticky;top:0;background:var(--card2);z-index:2;text-align:left;padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--mut);white-space:nowrap;cursor:pointer;border-bottom:1px solid var(--line)}
 thead th:hover{color:var(--txt)}
 thead th .arr{opacity:.4;margin-left:3px}
@@ -450,7 +453,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     <div class="panel-h" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
       <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
         <h3 style="white-space:nowrap">Individual Flagged <span class="badge b-info" id="individualFlaggedCount" style="display:none">0</span></h3>
-        <span class="hint">search a person, criteria &amp; time frame · only people flagged in 2 or more of the selected months show up · a repeat within one criterion across months counts too</span>
+        <span class="hint">search a person, criteria &amp; time frame · without a name typed in, only people flagged in 2 or more of the selected months show up (a repeat within one criterion across months counts too) · searching a name shows that person's matches regardless of count</span>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="team-ms" id="indivCritMs"><button class="ms-btn" id="indivCritMsBtn" onclick="toggleIndivMs('indivCrit')">All criteria ▾</button><div class="ms-menu ms-menu-wide" id="indivCritMsMenu"></div></div>
@@ -512,7 +515,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1788841249"></script>
+<script src="data.js?v=1788927966"></script>
 <script>
 
 /* ============ state ============ */
@@ -1104,12 +1107,17 @@ async function syncLive(){
 }
 async function syncLiveRun(){
   // Attendance comes from the periodic ZKTeco BioTime snapshot embedded in data.js
-  // (see fetch-zkteco-snapshot.py). This reloads that file (bypassing the browser cache)
-  // in case a fresh snapshot has been generated since the page loaded, and refreshes
-  // every Attendance-derived view (Monthly Attendance included) from it. Sailor's Report
-  // is entered manually in the Data Editor and is untouched by this.
+  // (see fetch-zkteco-snapshot.py). Clicking sync first asks serve.py's /api/sync-now
+  // to refetch *today's* month live from BioTime and merge it into data.js — that
+  // endpoint only exists on the local dev server (see serve.py), so its absence/failure
+  // is not fatal, we still fall back to reloading whatever data.js currently has.
+  // Sailor's Report is entered manually in the Data Editor and is untouched by this.
   setPill("sync");
-  let ok=false;
+  let liveOk=false, reloadOk=false;
+  try{
+    const r = await fetch("/api/sync-now", {method:"POST"});
+    liveOk = r.ok;
+  }catch(e){ liveOk=false; }
   try{
     const text = await fetch(`data.js?v=${Date.now()}`, {cache:"no-store"}).then(r=>{
       if(!r.ok) throw new Error("HTTP "+r.status);
@@ -1117,14 +1125,17 @@ async function syncLiveRun(){
     });
     const fresh = new Function(text + "\n;return DATA;")();
     DATA.months=fresh.months; DATA.employees=fresh.employees; DATA.daily=fresh.daily; DATA.profiles=fresh.profiles;
-    ok=true;
-  }catch(e){ ok=false; }
-  setPill(ok?"live":"off");
+    reloadOk=true;
+  }catch(e){ reloadOk=false; }
+  setPill(reloadOk?"live":"off");
   buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderTodayCards(); renderLandingTillDate();
-  $("#syncInfo").textContent = ok
-    ? `Attendance raw data synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}`
-    : "Attendance raw data sync unavailable";
-  toast(ok ? "Attendance raw data Sync complete" : "Attendance raw data sync unavailable");
+  const now = new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  $("#syncInfo").textContent = !reloadOk ? "Attendance raw data sync unavailable"
+    : liveOk ? `Attendance raw data synced ${now}`
+    : `Attendance raw data reloaded ${now} (live ZKTeco refresh unavailable — showing last snapshot)`;
+  toast(!reloadOk ? "Attendance raw data sync unavailable"
+    : liveOk ? "Attendance raw data Sync complete"
+    : "Attendance raw data sync complete (live refresh unavailable)");
 }
 
 /* ============ sailor's report — criteria (fixed default list, editable) ============ */
@@ -1326,7 +1337,7 @@ function toggleSailorMatrixCollapse(){
   if(chevIcon) chevIcon.style.transform = sailorMatrixCollapsed ? "rotate(-90deg)" : "rotate(0deg)";
   if(el) el.style.display = sailorMatrixCollapsed ? "none" : "block";
 }
-function computeSailorRepeats(criteria, months){
+function computeSailorRepeats(criteria, months, minMonths=2){
   const byPerson = new Map(); // name -> { monthsSet:Set, byCriterion: Map(criteriaLabel -> [{month,value}]) }
   criteria.forEach(c=>{
     months.forEach(m=>{
@@ -1340,7 +1351,7 @@ function computeSailorRepeats(criteria, months){
     });
   });
   return [...byPerson.entries()]
-    .filter(([,p])=>p.monthsSet.size>=2)
+    .filter(([,p])=>p.monthsSet.size>=minMonths)
     .map(([name,p])=>({name, monthCount:p.monthsSet.size, byCriterion:[...p.byCriterion.entries()]}))
     .sort((a,b)=> b.monthCount-a.monthCount || a.name.localeCompare(b.name));
 }
@@ -1513,7 +1524,10 @@ function renderIndividualFlagged(){
   const allCriteria=getSailorCriteriaList();
   const criteria = indivCritSelection.size ? allCriteria.filter(c=>indivCritSelection.has(c.criteria)) : allCriteria;
   const months = indivMonthSelection.size ? SAILOR_MATRIX_MONTHS.filter(m=>indivMonthSelection.has(m)) : SAILOR_MATRIX_MONTHS;
-  let repeats = computeSailorRepeats(criteria, months);
+  // Searching an exact name means "show this person's records", not "find repeat offenders" —
+  // the 2+ months threshold only makes sense in browse mode, otherwise narrowing the month
+  // filter to a single month always empties out someone who's right there in the data.
+  let repeats = computeSailorRepeats(criteria, months, q ? 1 : 2);
   if(q) repeats = repeats.filter(p=>p.name.toLowerCase().includes(q));
   if(countEl){ countEl.style.display=""; countEl.textContent=String(repeats.length); }
   if(!repeats.length){
