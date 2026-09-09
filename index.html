@@ -568,7 +568,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1788950463"></script>
+<script src="data.js?v=1788952273"></script>
 <script>
 
 /* ============ icon system — Feather-style inline SVGs, single stroke width/style
@@ -811,8 +811,25 @@ function toggleSidebarCollapse(){
   if(btn) btn.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
 }
 function toggleMobileSidebar(){
-  document.querySelector(".sidebar")?.classList.toggle("mobile-open");
+  const sidebar=document.querySelector(".sidebar");
+  const opening = sidebar && !sidebar.classList.contains("mobile-open");
+  sidebar?.classList.toggle("mobile-open");
   document.getElementById("sidebarBackdrop")?.classList.toggle("on");
+  // Opening the drawer should show every page at a glance, not require tapping through
+  // "PX Team-2026" and then each collapsed group just to see what's there. Expands
+  // whatever groups currently exist under #year2026Sub, so a future group behaves the
+  // same way with no extra wiring.
+  if(opening && YEAR==="2026"){
+    if(!year2026Open){
+      year2026Open = true;
+      document.getElementById("year2026Sub")?.classList.add("open");
+      const chev=document.getElementById("year2026Chev"); if(chev) chev.textContent="▴";
+    }
+    document.querySelectorAll("#year2026Sub > .side-group").forEach(g=>{
+      g.querySelector(".side-group-sub")?.classList.add("open");
+      g.querySelector(".side-group-btn")?.classList.add("open");
+    });
+  }
 }
 function closeMobileSidebar(){
   document.querySelector(".sidebar")?.classList.remove("mobile-open");
