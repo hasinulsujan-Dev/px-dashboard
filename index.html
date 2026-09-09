@@ -350,16 +350,26 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <div id="landingHome">
   <div class="page-head"><h2>Overview</h2></div>
   <div id="todayWrap" style="display:none;margin-bottom:24px">
-    <h3 style="font-size:14.5px;font-weight:600;letter-spacing:-0.02em;color:var(--txt);margin:0 0 4px 2px">Today</h3>
-    <div id="todayHint" style="font-size:12px;color:var(--mut);margin:0 0 10px 2px"></div>
+    <div style="margin:0 0 10px 2px">
+      <h3 style="font-size:14.5px;font-weight:600;letter-spacing:-0.02em;color:var(--txt);margin:0 0 4px 0">Today</h3>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div id="todayHint" style="font-size:12px;color:var(--mut)"></div>
+        <span style="color:var(--dim)">|</span>
+        <div id="todayTotalEmp" style="font-size:12px;color:var(--mut)"></div>
+      </div>
+    </div>
     <div class="kpis-2col" id="todayCards"></div>
-    <div class="landing-total" id="todayTotalEmp"></div>
   </div>
   <div id="landingTillDateWrap" style="display:none">
-    <h3 style="font-size:14.5px;font-weight:600;letter-spacing:-0.02em;color:var(--txt);margin:0 0 4px 2px">Current month- till date</h3>
-    <div id="landingTillDateHint" style="font-size:12px;color:var(--mut);margin:0 0 10px 2px"></div>
+    <div style="margin:0 0 10px 2px">
+      <h3 style="font-size:14.5px;font-weight:600;letter-spacing:-0.02em;color:var(--txt);margin:0 0 4px 0">Current month- till date</h3>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div id="landingTillDateHint" style="font-size:12px;color:var(--mut)"></div>
+        <span style="color:var(--dim)">|</span>
+        <div id="landingTillDateTotalEmp" style="font-size:12px;color:var(--mut)"></div>
+      </div>
+    </div>
     <div class="kpis-2col" id="landingTillDateCards"></div>
-    <div class="landing-total" id="landingTillDateTotalEmp"></div>
   </div>
 </div>
 <div id="pageViews" style="display:none">
@@ -759,6 +769,21 @@ function landingHeadcount(mSel){
   });
   return ids.size;
 }
+function landingSupportStaffCount(mSel){
+  // Not deduped by id like landingHeadcount() — Support Staff rows (cleaners, cooks,
+  // drivers, etc.) don't get a real unique BioTime employee code the way regular staff
+  // do; several distinct people can share the same literal id (e.g. two different
+  // cleaners both recorded as "Support Staff Cleaner"), so deduping by id here would
+  // undercount real people.
+  return (DATA.employees?.[mSel]||[]).filter(e=>{
+    const team=DATA.profiles?.[e.id]?.team || e.team || "";
+    return /^support staff/i.test(team||"");
+  }).length;
+}
+function landingHeadcountNote(mSel){
+  const n = landingSupportStaffCount(mSel);
+  return n ? ` (Minus ${n} Support Staff)` : "";
+}
 // Monthly Attendance (the daily-row table on Attendance-Raw data) also pulls Support Staff,
 // since that data is needed for future reports — but Temporary and anything else stays out.
 // Summary, Sailor's Raw data, and every Sailor's Report section keep excluding Support Staff
@@ -900,7 +925,7 @@ function renderTodayCards(){
   wrap.style.display="";
   document.getElementById("todayHint").textContent = `${shortYearLabel(mSel)} · day ${todayDay}`;
   document.getElementById("todayCards").innerHTML=[["Attended",attToday,"today","var(--ok)","var(--okbg)","calendar-check"],["Absent",absentToday,"today","var(--bad)","var(--badbg)","calendar-x"],["On Time",onTimeToday,"today","var(--acc)","rgba(91,140,255,.12)","clock"],["Late",lateToday,"today","var(--warn)","var(--warnbg)","bell"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
-  document.getElementById("todayTotalEmp").innerHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash`;
+  document.getElementById("todayTotalEmp").innerHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash${esc(landingHeadcountNote(mSel))}`;
 }
 // "Till date" cards shown on the collapsed PX Team-2026 landing view — current-progress
 // snapshot for the real calendar month, independent of the Attendance page's own filters.
@@ -934,7 +959,7 @@ function renderLandingTillDate(){
   wrap.style.display="";
   document.getElementById("landingTillDateHint").textContent = `${shortYearLabel(mSel)} — till date (through day ${todayDay}, ${wdTillDate} workdays so far)`;
   document.getElementById("landingTillDateCards").innerHTML=[["Attended",attTillDate,"till date this month","var(--ok)","var(--okbg)","calendar-check"],["Absent",absentTillDate,"till date this month","var(--bad)","var(--badbg)","calendar-x"],["On Time",onTimeTillDate,"till date this month","var(--acc)","rgba(91,140,255,.12)","clock"],["Late",lateTillDate,"till date this month","var(--warn)","var(--warnbg)","bell"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
-  document.getElementById("landingTillDateTotalEmp").innerHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash`;
+  document.getElementById("landingTillDateTotalEmp").innerHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash${esc(landingHeadcountNote(mSel))}`;
 }
 function fmtDuration(h){ if(h==null) return "—"; const sec=Math.round(h*3600); const hh=String(Math.floor(sec/3600)).padStart(2,"0"); const mm=String(Math.floor((sec%3600)/60)).padStart(2,"0"); const ss=String(sec%60).padStart(2,"0"); return `${hh}:${mm}:${ss}`; }
 
