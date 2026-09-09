@@ -16,6 +16,11 @@
   --bad:#f87171; --badbg:rgba(248,113,113,.12); --info:#60a5fa; --infobg:rgba(96,165,250,.12);
   --r:12px; --shadow:0 1px 2px rgba(0,0,0,.28); --shadow-lg:0 16px 40px rgba(0,0,0,.4);
   --btn-pri-bg:#f5f7fb; --btn-pri-fg:#0b0f17;
+  /* Real height of header.top, measured and kept in sync by JS (see boot()/syncHeaderHeight)
+     so the sidebar's sticky offset can never drift out of sync with it again — the header's
+     height changes with font loading, theme, and viewport width (it wraps to 2 lines on
+     narrow screens), so a hardcoded px value here silently breaks alignment. */
+  --header-h:53px;
 }
 body.light{
   --bg:#f4f6fb; --bg2:#eef1f8; --card:#ffffff; --card2:#f6f8fd; --line:#e3e8f2;
@@ -229,7 +234,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 
 /* ---------- sidebar (year pages) ---------- */
 .layout{display:grid;grid-template-columns:220px 1fr;gap:0;max-width:1500px;margin:0 auto;transition:grid-template-columns .18s}
-.sidebar{position:sticky;top:53px;align-self:start;height:calc(100vh - 53px);padding:18px 14px;border-right:1px solid var(--line);background:color-mix(in srgb,var(--bg) 94%,transparent);overflow:visible}
+.sidebar{position:sticky;top:var(--header-h);align-self:start;height:calc(100vh - var(--header-h));padding:18px 14px;border-right:1px solid var(--line);background:color-mix(in srgb,var(--bg) 94%,transparent);overflow:visible}
 .sidebar-content{height:100%;overflow-y:auto;overflow-x:hidden;padding-right:10px}
 .sidebar-toggle{position:absolute;top:22px;right:-16px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--acc);border:3px solid var(--bg);color:#fff;cursor:pointer;z-index:5}
 .sidebar-toggle:hover{background:var(--acc2)}
@@ -258,7 +263,6 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 .years a.stub:hover{border-color:transparent;background:none;color:var(--mut)}
 .years a.stub .badge{margin-left:auto;font-size:10px;padding:1px 6px}
 .foot-note{margin-top:18px;font-size:11px;color:var(--dim);line-height:1.5;padding:0 6px}
-@media(min-width:721px) and (max-width:900px){ .layout{grid-template-columns:1fr} .layout.sidebar-collapsed{grid-template-columns:1fr} .sidebar{position:relative;height:auto;border-right:none;border-bottom:1px solid var(--line)} .sidebar-toggle{right:14px} }
 @media(max-width:720px){.top-in{padding:12px 14px;flex-wrap:wrap;row-gap:10px}main{padding:18px 14px 60px}
   .layout{grid-template-columns:1fr}
   .hamburger-btn{display:flex}
@@ -574,7 +578,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1788952429"></script>
+<script src="data.js?v=1788953803"></script>
 <script>
 
 /* ============ icon system — Feather-style inline SVGs, single stroke width/style
@@ -1826,8 +1830,21 @@ function onManualEntryCritChange(){ manEntryKey=document.getElementById("manCrit
 
 
 /* ============ boot ============ */
+/* Keeps --header-h (the sidebar's sticky top offset / height calc) equal to header.top's
+   real rendered height, which changes with viewport width (wraps to two rows on mobile)
+   and font loading — a hardcoded px value here drifts out of sync and either leaves a
+   gap the sidebar has to "catch up" through before it sticks, or makes it stick a few
+   pixels under the header. */
+function syncHeaderHeight(){
+  const header=document.querySelector("header.top");
+  if(header) document.documentElement.style.setProperty("--header-h", header.offsetHeight+"px");
+}
+window.addEventListener("resize", syncHeaderHeight);
+if(document.fonts?.ready) document.fonts.ready.then(syncHeaderHeight);
+
 (function boot(){ try{
   document.querySelectorAll("[data-icon]").forEach(el=>{ el.innerHTML = icon(el.dataset.icon, +el.dataset.iconSize || 14); });
+  syncHeaderHeight();
   buildSidebarIconRail();
   applyYearChrome();
   if(YEAR==="2027"){
