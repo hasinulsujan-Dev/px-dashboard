@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PX Team Dashboard-2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0b0f17; --bg2:#101623; --card:#141b2b; --card2:#1a2236; --line:#232d44;
@@ -23,7 +26,7 @@ body.light{
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 html,body{max-width:100%;overflow-x:hidden}
-body{background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--txt);font:14px/1.5 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
 ::selection{background:rgba(91,140,255,.35)}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 input,select{font:inherit;color:var(--txt);background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;outline:none;transition:border .15s}
@@ -80,11 +83,17 @@ main{padding:26px 24px 80px;min-width:0;width:100%}
 .field svg{flex-shrink:0;color:var(--dim)}
 .tgl{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);cursor:pointer;user-select:none}
 .tgl input{accent-color:var(--acc);width:15px;height:15px}
-.btn{height:36px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--mut);font-weight:500;font-size:13px;display:inline-flex;align-items:center;gap:7px;transition:background-color .15s,border-color .15s,color .15s}
-.btn:hover{color:var(--txt);background:var(--card2);border-color:var(--acc)}
+.btn{height:36px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);font-weight:500;font-size:13px;display:inline-flex;align-items:center;gap:7px;box-shadow:var(--shadow);transition:background-color .15s,border-color .15s,color .15s,box-shadow .15s}
+.btn svg{flex:none}
+.btn:hover{color:var(--acc);background:var(--card2);border-color:var(--acc)}
 .btn.pri{background:var(--btn-pri-bg);color:var(--btn-pri-fg);border-color:transparent;font-weight:600}
-.btn.pri:hover{opacity:.88}
+.btn.pri:hover{opacity:.88;color:var(--btn-pri-fg)}
 .btn.danger:hover{color:var(--bad);border-color:var(--bad)}
+
+/* ---------- page head ---------- */
+.page-head{margin-bottom:20px}
+.page-head h2{font-size:26px;font-weight:800;letter-spacing:-0.02em}
+.page-head p{margin-top:6px;font-size:13.5px;color:var(--mut);line-height:1.5}
 
 /* ---------- KPI ---------- */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:14px;margin-bottom:20px}
@@ -246,7 +255,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     </div>
     <div class="spacer"></div>
     <button class="badge b-mut" id="syncPill" title="Reload the Attendance data.js snapshot (regenerated periodically from the ZKTeco BioTime API)" onclick="syncLive()">● zkteco-api sync</button>
-    <button class="btn" onclick="exportAll()">↓ Export</button>
+    <button class="btn" onclick="exportAll()"><span data-icon="download"></span> Export</button>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Switch theme" aria-label="Switch between Light and Dark mode">
       <span class="track"><span class="thumb"></span></span>
       <span class="label"><span class="on">Dark</span><span class="off">Light</span></span>
@@ -262,21 +271,21 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     <a id="year2026" class="active" href="?year=2026" aria-current="page" onclick="return toggleYear2026(event)"><span class="dot"></span><span style="flex:1">PX Team-2026</span><span class="chev" id="year2026Chev">▾</span></a>
     <div class="year-subnav" id="year2026Sub">
       <div class="side-group" id="reportsGroup">
-        <button class="side-group-btn" id="reportsGroupBtn" onclick="toggleSideGroup('reports')"><span>▤ Reports</span><span class="dot"></span><span class="chev">▸</span></button>
+        <button class="side-group-btn" id="reportsGroupBtn" onclick="toggleSideGroup('reports')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="bar-chart"></span> Reports</span><span class="dot"></span><span class="chev">▸</span></button>
         <div class="side-group-sub" id="reportsSub">
           <button class="side-tab" data-v="sailorreport">Sailor's Report</button>
           <button class="side-tab" data-v="pxreport">PX Report</button>
         </div>
       </div>
       <div class="side-group" id="rawdataGroup">
-        <button class="side-group-btn has-active" id="rawdataGroupBtn" onclick="toggleSideGroup('rawdata')"><span>▦ Raw data</span><span class="dot"></span><span class="chev">▸</span></button>
+        <button class="side-group-btn has-active" id="rawdataGroupBtn" onclick="toggleSideGroup('rawdata')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="database"></span> Raw data</span><span class="dot"></span><span class="chev">▸</span></button>
         <div class="side-group-sub" id="rawdataSub">
           <button class="side-tab on" data-v="att">Attendance- Raw data</button>
           <button class="side-tab" data-v="sail">Sailor's Raw data</button>
         </div>
       </div>
       <div class="side-group" id="dataEditorGroup">
-        <button class="side-group-btn" id="dataEditorGroupBtn" onclick="toggleSideGroup('dataEditor')"><span>✎ Data Editor</span><span class="dot"></span><span class="chev">▸</span></button>
+        <button class="side-group-btn" id="dataEditorGroupBtn" onclick="toggleSideGroup('dataEditor')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="edit"></span> Data Editor</span><span class="dot"></span><span class="chev">▸</span></button>
         <div class="side-group-sub" id="dataEditorSub">
           <button class="side-tab" data-v="db">Sailor's Raw— Manual Entries <span class="cnt" id="ovrCount">0</span></button>
         </div>
@@ -292,6 +301,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <main>
 <!-- ================= LANDING (shown while PX Team-2026 is collapsed) ================= -->
 <div id="landingHome">
+  <div class="page-head"><h2>Overview</h2><p>Attendance &amp; Sailor's Report health for the PX Team, at a glance.</p></div>
   <div id="todayWrap" style="display:none;margin-bottom:24px">
     <h3 style="font-size:14.5px;font-weight:600;letter-spacing:-0.02em;color:var(--txt);margin:0 0 4px 2px">Today</h3>
     <div id="todayHint" style="font-size:12px;color:var(--mut);margin:0 0 10px 2px"></div>
@@ -308,6 +318,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <div id="pageViews" style="display:none">
 <!-- ================= ATTENDANCE ================= -->
 <section class="view on" id="view-att">
+  <div class="page-head"><h2>Attendance — Raw Data</h2><p>Monitor organization-wide attendance health and drill into the monthly punch log.</p></div>
   <div class="kpis" id="kpis"></div>
 
   <div class="toolbar">
@@ -391,9 +402,10 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 
 <!-- ================= SAILOR'S REPORT ================= -->
 <section class="view" id="view-sail">
+  <div class="page-head"><h2>Sailor's Report — Raw Data</h2><p>Criteria-by-employee breakdown that Sailor's Report is built from, month by month.</p></div>
   <div class="toolbar">
     <select id="sailReportMonthSel" onchange="onSailReportMonthChange()" style="height:36px"></select>
-    <button class="btn" onclick="openCriteriaEditor()">✎ Edit Criteria</button>
+    <button class="btn" onclick="openCriteriaEditor()"><span data-icon="edit"></span> Edit Criteria</button>
   </div>
   <div class="panel">
     <div class="panel-h">
@@ -413,10 +425,11 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 
 <!-- ================= DATA EDITOR ================= -->
 <section class="view" id="view-db">
+  <div class="page-head"><h2>Data Editor</h2><p>Manual corrections and entries that aren't computed automatically, kept local to this browser.</p></div>
   <div class="toolbar">
     <span class="hint" style="font-size:13px">Manual corrections are stored locally and override synced sheet values.</span>
     <div class="spacer"></div>
-    <button class="btn danger" onclick="resetOverrides()">↺ Reset all manual edits</button>
+    <button class="btn danger" onclick="resetOverrides()"><span data-icon="rotate-ccw"></span> Reset all manual edits</button>
   </div>
   <div class="panel">
     <div class="panel-h">
@@ -433,7 +446,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
         <input type="text" id="manEntryName" list="employeeNamesDatalist" placeholder="Name / description… (start typing to pick from roster)" style="flex:1" autocomplete="off">
         <datalist id="employeeNamesDatalist"></datalist>
         <input type="text" id="manEntryValue" placeholder="count / note" style="width:160px">
-        <button class="btn pri" onclick="addManualEntryFromForm()">+ Add</button>
+        <button class="btn pri" onclick="addManualEntryFromForm()"><span data-icon="plus"></span> Add</button>
       </div>
     </div>
   </div>
@@ -441,6 +454,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 
 <!-- ================= PX REPORT (Reports menu) ================= -->
 <section class="view" id="view-pxreport">
+  <div class="page-head"><h2>PX Report</h2><p>Coming soon — this report will be designed later.</p></div>
   <div class="panel">
     <div class="panel-h"><h3>PX Report</h3><span class="hint">Coming soon — this report will be designed later.</span></div>
     <div class="empty-state" style="padding:60px 20px">Content for PX Report will be added soon.</div>
@@ -449,6 +463,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 
 <!-- ================= SAILOR'S REPORT (Reports menu) ================= -->
 <section class="view" id="view-sailorreport">
+  <div class="page-head"><h2>Sailor's Report</h2><p>Track misconduct and exception criteria across the team, month by month.</p></div>
   <div class="panel" style="margin-bottom:16px">
     <div class="panel-h" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
       <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
@@ -458,7 +473,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <div class="team-ms" id="indivCritMs"><button class="ms-btn" id="indivCritMsBtn" onclick="toggleIndivMs('indivCrit')">All criteria ▾</button><div class="ms-menu ms-menu-wide" id="indivCritMsMenu"></div></div>
         <div class="team-ms" id="indivMonthMs"><button class="ms-btn" id="indivMonthMsBtn" onclick="toggleIndivMs('indivMonth')">All months ▾</button><div class="ms-menu" id="indivMonthMsMenu"></div></div>
-        <button class="btn" onclick="resetIndividualFlagged()" title="Reset search" style="width:36px;height:36px;padding:0;justify-content:center;font-size:15px">↻</button>
+        <button class="btn" onclick="resetIndividualFlagged()" title="Reset search" style="width:36px;height:36px;padding:0;justify-content:center"><span data-icon="refresh-cw"></span></button>
         <label style="display:flex;align-items:center;gap:6px;height:36px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--mut);font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap"><input type="checkbox" id="indivShowAllCb" onchange="onIndivShowAllCheck(this)"> All Team Members</label>
         <input type="text" id="indivSearchName" placeholder="Search a name…" oninput="onIndivSearchInput()" autocomplete="off" style="width:200px;height:36px">
       </div>
@@ -515,8 +530,31 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1788927966"></script>
+<script src="data.js?v=1788932075"></script>
 <script>
+
+/* ============ icon system — Feather-style inline SVGs, single stroke width/style
+   everywhere an icon shows up (KPI cards, buttons, sidebar groups) ============ */
+const ICON_PATHS = {
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  "calendar-check": '<rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m9 16 2 2 4-4"/>',
+  "calendar-x": '<rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="m10 15 4 4M14 15l-4 4"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  plane: '<path d="M17.8 19.2 16 11l3.5-3.5c.8-.8.8-2 0-2.8s-2-.8-2.8 0L13.2 8 5 6.2c-.6-.1-1.2.1-1.5.6l-.3.5c-.3.5-.2 1.1.3 1.5L8 12l-2 2H3l-1 3 3-1v3l3-2 3.5 4.5c.4.5 1 .6 1.5.3l.5-.3c.5-.3.7-.9.6-1.5Z"/>',
+  "log-out": '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+  clipboard: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-4"/><path d="m9 14 2 2 4-4"/>',
+  download: '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  "rotate-ccw": '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+  "refresh-cw": '<path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.5 15a9 9 0 0 1-14.85 3.36L1 14"/>',
+  plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+  "bar-chart": '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>',
+  database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>',
+};
+function icon(name, size=14){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none">${ICON_PATHS[name]||""}</svg>`;
+}
 
 /* ============ state ============ */
 const YEAR = new URLSearchParams(location.search).get("year") || "2026";
@@ -719,7 +757,7 @@ function renderTodayCards(){
   });
   wrap.style.display="";
   document.getElementById("todayHint").textContent = `${shortYearLabel(mSel)} · day ${todayDay}`;
-  document.getElementById("todayCards").innerHTML=[["Attended",attToday,"today","var(--ok)","var(--okbg)","✓"],["Absent",absentToday,"today","var(--bad)","var(--badbg)","✗"],["On Time",onTimeToday,"today","var(--acc)","rgba(91,140,255,.12)","🕒"],["Late",lateToday,"today","var(--warn)","var(--warnbg)","⏰"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
+  document.getElementById("todayCards").innerHTML=[["Attended",attToday,"today","var(--ok)","var(--okbg)","calendar-check"],["Absent",absentToday,"today","var(--bad)","var(--badbg)","calendar-x"],["On Time",onTimeToday,"today","var(--acc)","rgba(91,140,255,.12)","clock"],["Late",lateToday,"today","var(--warn)","var(--warnbg)","bell"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
   document.getElementById("todayTotalEmp").innerHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash`;
 }
 // "Till date" cards shown on the collapsed PX Team-2026 landing view — current-progress
@@ -753,7 +791,7 @@ function renderLandingTillDate(){
   });
   wrap.style.display="";
   document.getElementById("landingTillDateHint").textContent = `${shortYearLabel(mSel)} — till date (through day ${todayDay}, ${wdTillDate} workdays so far)`;
-  document.getElementById("landingTillDateCards").innerHTML=[["Attended",attTillDate,"till date this month","var(--ok)","var(--okbg)","✓"],["Absent",absentTillDate,"till date this month","var(--bad)","var(--badbg)","✗"],["On Time",onTimeTillDate,"till date this month","var(--acc)","rgba(91,140,255,.12)","🕒"],["Late",lateTillDate,"till date this month","var(--warn)","var(--warnbg)","⏰"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
+  document.getElementById("landingTillDateCards").innerHTML=[["Attended",attTillDate,"till date this month","var(--ok)","var(--okbg)","calendar-check"],["Absent",absentTillDate,"till date this month","var(--bad)","var(--badbg)","calendar-x"],["On Time",onTimeTillDate,"till date this month","var(--acc)","rgba(91,140,255,.12)","clock"],["Late",lateTillDate,"till date this month","var(--warn)","var(--warnbg)","bell"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
   document.getElementById("landingTillDateTotalEmp").innerHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash`;
 }
 function fmtDuration(h){ if(h==null) return "—"; const sec=Math.round(h*3600); const hh=String(Math.floor(sec/3600)).padStart(2,"0"); const mm=String(Math.floor((sec%3600)/60)).padStart(2,"0"); const ss=String(sec%60).padStart(2,"0"); return `${hh}:${mm}:${ss}`; }
@@ -964,7 +1002,7 @@ function renderAtt(){
   let wdCount = 0;
   for(let d=1; d<=daysInMonth; d++){ const dow=new Date(2026, monthIdx, d).getDay(); if(dow!==5 && dow!==6) wdCount++; }
   const rosterCount = [...MATRIX.roster.keys()].filter(id=>!isExcludedTeam(MATRIX.roster.get(id)?.team||"") && !isExcludedTeam(MATRIX.idx.get(mSel)?.get(id)?.team||"")).length;
-  $("#kpis").innerHTML=[["Total Employees",`${rosterCount}`,"unique roster head count (ex Support Staff)","var(--acc)","rgba(91,140,255,.12)","👥"],["Weekdays",wdCount,"calendar working days (Fri–Sat as weekends)","var(--ok)","var(--okbg)","✓"],["Attendance",uniqueAtt,"unique attendees in month","var(--warn)","var(--warnbg)","⏰"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${i}</span></div>`).join("");
+  $("#kpis").innerHTML=[["Total Employees",`${rosterCount}`,"unique roster head count (ex Support Staff)","var(--acc)","rgba(91,140,255,.12)","users"],["Weekdays",wdCount,"calendar working days (Fri–Sat as weekends)","var(--ok)","var(--okbg)","calendar-check"],["Attendance",uniqueAtt,"unique attendees in month","var(--warn)","var(--warnbg)","clock"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
   $("#tblHint").textContent = distinct + " employees · " + rows.length + " rows · " + shortYearLabel(mSel);
   if(!rows.length){ tb.innerHTML=`<tr><td colspan="14" class="empty-state">No rows for ${mSel} with current filters</td></tr>`; return; }
   tb.innerHTML = rows.map(r=>`
@@ -1046,7 +1084,7 @@ function openEmp(id, month){
       </div>
       <div style="display:flex;gap:10px;margin-top:16px">
         <button class="btn pri" onclick="saveEmp('${esc(id)}','${month}')">Save correction</button>
-        ${o&&Object.keys(o).length?`<button class="btn danger" onclick="clearEmp('${esc(id)}','${month}')">Revert to sheet</button>`:""}
+        ${o&&Object.keys(o).length?`<button class="btn danger" onclick="clearEmp('${esc(id)}','${month}')">${icon("rotate-ccw")} Revert to sheet</button>`:""}
       </div>
     </div>`;
   $("#ovl").classList.add("on");
@@ -1234,7 +1272,7 @@ function renderSailorCriteria(){
   const tbody=document.querySelector("#sailCritTbl tbody");
   if(!criteria.length){
     thead.innerHTML="";
-    tbody.innerHTML = `<tr><td class="empty-state">No criteria defined.<p><button class="btn pri" style="height:28px" onclick="openCriteriaEditor()">+ Add criteria</button></p></td></tr>`;
+    tbody.innerHTML = `<tr><td class="empty-state">No criteria defined.<p><button class="btn pri" style="height:28px" onclick="openCriteriaEditor()">${icon("plus")} Add criteria</button></p></td></tr>`;
     return;
   }
   const valueMaps = criteria.map(c=> new Map(getCriterionValues(sailReportMonth, c.key).map(e=>[e.name, e.value])));
@@ -1557,9 +1595,9 @@ function openCriteriaEditor(){
           </div>`).join("")}
       </div>
       <div style="display:flex;gap:10px;margin-top:14px">
-        <button class="btn" onclick="addCriteriaEditRow()">+ Add criterion</button>
+        <button class="btn" onclick="addCriteriaEditRow()">${icon("plus")} Add criterion</button>
         <div class="spacer"></div>
-        <button class="btn danger" onclick="resetCriteriaToDefault()">Reset to default</button>
+        <button class="btn danger" onclick="resetCriteriaToDefault()">${icon("rotate-ccw")} Reset to default</button>
         <button class="btn pri" onclick="saveCriteriaEdits()">Save</button>
       </div>
     </div>`;
@@ -1662,6 +1700,7 @@ function onManualEntryCritChange(){ manEntryKey=document.getElementById("manCrit
 
 /* ============ boot ============ */
 (function boot(){ try{
+  document.querySelectorAll("[data-icon]").forEach(el=>{ el.innerHTML = icon(el.dataset.icon, +el.dataset.iconSize || 14); });
   applyYearChrome();
   if(YEAR==="2027"){
     // 2027 stub: no 2026 data fetch, render empty 14-col shells
