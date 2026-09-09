@@ -231,6 +231,17 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 .layout.sidebar-collapsed{grid-template-columns:52px 1fr}
 .layout.sidebar-collapsed .sidebar-content{display:none}
 .layout.sidebar-collapsed .sidebar-toggle .arrow{transform:rotate(180deg)}
+/* Icon-only rail shown in place of the full nav while collapsed — built once at boot
+   from whatever top-level groups/tabs exist under #year2026Sub (see buildSidebarIconRail),
+   so a newly added main page shows up here automatically, no extra wiring needed. */
+.sidebar-icon-rail{display:none;flex-direction:column;align-items:center;gap:10px;padding-top:54px}
+.layout.sidebar-collapsed .sidebar-icon-rail{display:flex}
+.rail-btn{width:36px;height:36px;flex:none;border-radius:10px;border:1px solid transparent;background:none;color:var(--mut);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background-color .15s,color .15s,border-color .15s}
+.rail-btn:hover{background:var(--card2);color:var(--txt);border-color:var(--line)}
+.rail-flyout{display:none;position:fixed;flex-direction:column;gap:2px;min-width:200px;max-width:260px;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-lg);z-index:60}
+.rail-flyout.open{display:flex}
+.rail-flyout .item{padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--txt);cursor:pointer;white-space:nowrap}
+.rail-flyout .item:hover{background:var(--card2)}
 .years{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .years a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid transparent;color:var(--mut);font-weight:700;font-size:14px;letter-spacing:-0.01em;text-decoration:none;transition:border .15s,background .15s,color .15s}
 .years a .dot{width:7px;height:7px;border-radius:50%;background:var(--mut);opacity:0.9}
@@ -284,25 +295,26 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <div class="layout">
 <aside class="sidebar" aria-label="Year pages">
   <button class="sidebar-toggle" id="sidebarToggleBtn" onclick="toggleSidebarCollapse()" title="Collapse/expand sidebar"><span class="arrow">◀</span></button>
+  <div class="sidebar-icon-rail" id="sidebarIconRail"></div>
   <div class="sidebar-content">
   <nav class="years">
     <a id="year2026" class="active" href="?year=2026" aria-current="page" onclick="return toggleYear2026(event)"><span class="dot"></span><span style="flex:1">PX Team-2026</span><span class="chev" id="year2026Chev">▾</span></a>
     <div class="year-subnav" id="year2026Sub">
       <div class="side-group" id="rawdataGroup">
-        <button class="side-group-btn has-active" id="rawdataGroupBtn" onclick="toggleSideGroup('rawdata')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="database"></span> Raw data</span><span class="dot"></span><span class="chev">▸</span></button>
+        <button class="side-group-btn has-active" id="rawdataGroupBtn" data-group="rawdata" onclick="toggleSideGroup('rawdata')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="database"></span> Raw data</span><span class="dot"></span><span class="chev">▸</span></button>
         <div class="side-group-sub" id="rawdataSub">
           <button class="side-tab on" data-v="att">Attendance- Raw data</button>
           <button class="side-tab" data-v="sail">Sailor's Raw data</button>
         </div>
       </div>
       <div class="side-group" id="dataEditorGroup">
-        <button class="side-group-btn" id="dataEditorGroupBtn" onclick="toggleSideGroup('dataEditor')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="edit"></span> Data Editor</span><span class="dot"></span><span class="chev">▸</span></button>
+        <button class="side-group-btn" id="dataEditorGroupBtn" data-group="dataEditor" onclick="toggleSideGroup('dataEditor')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="edit"></span> Data Editor</span><span class="dot"></span><span class="chev">▸</span></button>
         <div class="side-group-sub" id="dataEditorSub">
           <button class="side-tab" data-v="db">Sailor's Raw— Manual Entries <span class="cnt" id="ovrCount">0</span></button>
         </div>
       </div>
       <div class="side-group" id="stakeholdersGroup">
-        <button class="side-group-btn" id="stakeholdersGroupBtn" onclick="toggleSideGroup('stakeholders')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="shield"></span> Stakeholders</span><span class="dot"></span><span class="chev">▸</span></button>
+        <button class="side-group-btn" id="stakeholdersGroupBtn" data-group="stakeholders" onclick="toggleSideGroup('stakeholders')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="shield"></span> Stakeholders</span><span class="dot"></span><span class="chev">▸</span></button>
         <div class="side-group-sub" id="stakeholdersSub">
           <button class="side-tab" data-v="sailorreport">Report for Sailors</button>
           <button class="side-tab" data-v="pxreport">PX Report</button>
@@ -550,12 +562,13 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 
 <footer>PX Team Dashboard-2026 · v1 · Data: ZKTeco BioTime Attendance snapshot &amp; Sailor's Report-2026 with Sample Data · Weekends: Fri &amp; Sat</footer>
 
+<div class="rail-flyout" id="railFlyout"></div>
 <div class="overlay" id="ovl" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modalBox"></div>
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1788948889"></script>
+<script src="data.js?v=1788950463"></script>
 <script>
 
 /* ============ icon system — Feather-style inline SVGs, single stroke width/style
@@ -622,6 +635,64 @@ function toggleSideGroup(name){
   sub.classList.toggle("open", opening);
   btn.classList.toggle("open", opening);
 }
+/* Reads whatever top-level groups (.side-group, each needs a [data-group] on its
+   .side-group-btn matching its toggleSideGroup() name) and standalone tabs
+   (.side-tab directly under #year2026Sub, like Access Management) currently exist,
+   and renders one icon button per item — so a newly added main page automatically
+   gets a collapsed-rail icon with no changes needed here. */
+function buildSidebarIconRail(){
+  const rail=document.getElementById("sidebarIconRail");
+  if(!rail) return;
+  const items=[];
+  document.querySelectorAll("#year2026Sub > .side-group").forEach(g=>{
+    const btn=g.querySelector(".side-group-btn");
+    const iconEl=btn?.querySelector("[data-icon]");
+    if(!btn || !iconEl || !btn.dataset.group) return;
+    items.push({kind:"group", key:btn.dataset.group, iconName:iconEl.dataset.icon, label:iconEl.parentElement.textContent.trim()});
+  });
+  document.querySelectorAll("#year2026Sub > .side-tab").forEach(t=>{
+    const iconEl=t.querySelector("[data-icon]");
+    if(!iconEl || !t.dataset.v) return;
+    items.push({kind:"tab", key:t.dataset.v, iconName:iconEl.dataset.icon, label:iconEl.parentElement.textContent.trim()});
+  });
+  rail.innerHTML = items.map(it=>
+    `<button class="rail-btn" title="${esc(it.label)}" onclick="railItemClick('${it.kind}','${it.key}',this)">${icon(it.iconName,18)}</button>`
+  ).join("");
+}
+function railItemClick(kind, key, btnEl){
+  // Sidebar stays collapsed — a rail click is a page shortcut, not an "expand" gesture.
+  // A group's icon has no single page of its own, so it opens a flyout listing that
+  // group's pages (built fresh from its .side-tab children, so a newly added page
+  // shows up with no changes needed here) instead of guessing which one to jump to.
+  if(kind==="group"){
+    openRailFlyout(key, btnEl);
+  } else {
+    closeRailFlyout();
+    document.querySelector(`.side-tab[data-v="${key}"]`)?.click();
+  }
+}
+function openRailFlyout(groupKey, btnEl){
+  const flyout=document.getElementById("railFlyout");
+  if(!flyout || !btnEl) return;
+  if(flyout.classList.contains("open") && flyout.dataset.groupKey===groupKey){ closeRailFlyout(); return; }
+  const sub=document.getElementById(groupKey+"Sub");
+  if(!sub) return;
+  if(!sub.classList.contains("open")) toggleSideGroup(groupKey);
+  const tabs=[...sub.querySelectorAll(".side-tab")];
+  flyout.innerHTML = tabs.map((t,i)=>`<div class="item" data-idx="${i}">${esc(t.textContent.trim())}</div>`).join("");
+  [...flyout.querySelectorAll(".item")].forEach((el,i)=>{ el.onclick = ()=>{ closeRailFlyout(); tabs[i].click(); }; });
+  flyout.dataset.groupKey = groupKey;
+  const r=btnEl.getBoundingClientRect();
+  flyout.style.top = r.top+"px";
+  flyout.style.left = (r.right+8)+"px";
+  flyout.classList.add("open");
+}
+function closeRailFlyout(){ document.getElementById("railFlyout")?.classList.remove("open"); }
+document.addEventListener('click', e=>{
+  const flyout=document.getElementById("railFlyout");
+  if(flyout && flyout.classList.contains("open") && !flyout.contains(e.target) && !e.target.closest(".rail-btn")) closeRailFlyout();
+});
+document.addEventListener('scroll', closeRailFlyout, {capture:true, passive:true});
 function buildTeamMs(){
   const menu=document.getElementById("teamMsMenu"); const btn=document.getElementById("teamMsBtn");
   if(!menu||!btn) return;
@@ -1734,6 +1805,7 @@ function onManualEntryCritChange(){ manEntryKey=document.getElementById("manCrit
 /* ============ boot ============ */
 (function boot(){ try{
   document.querySelectorAll("[data-icon]").forEach(el=>{ el.innerHTML = icon(el.dataset.icon, +el.dataset.iconSize || 14); });
+  buildSidebarIconRail();
   applyYearChrome();
   if(YEAR==="2027"){
     // 2027 stub: no 2026 data fetch, render empty 14-col shells
