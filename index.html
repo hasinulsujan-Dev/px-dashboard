@@ -288,13 +288,6 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <nav class="years">
     <a id="year2026" class="active" href="?year=2026" aria-current="page" onclick="return toggleYear2026(event)"><span class="dot"></span><span style="flex:1">PX Team-2026</span><span class="chev" id="year2026Chev">▾</span></a>
     <div class="year-subnav" id="year2026Sub">
-      <div class="side-group" id="reportsGroup">
-        <button class="side-group-btn" id="reportsGroupBtn" onclick="toggleSideGroup('reports')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="bar-chart"></span> Reports</span><span class="dot"></span><span class="chev">▸</span></button>
-        <div class="side-group-sub" id="reportsSub">
-          <button class="side-tab" data-v="sailorreport">Sailor's Report</button>
-          <button class="side-tab" data-v="pxreport">PX Report</button>
-        </div>
-      </div>
       <div class="side-group" id="rawdataGroup">
         <button class="side-group-btn has-active" id="rawdataGroupBtn" onclick="toggleSideGroup('rawdata')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="database"></span> Raw data</span><span class="dot"></span><span class="chev">▸</span></button>
         <div class="side-group-sub" id="rawdataSub">
@@ -311,8 +304,8 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
       <div class="side-group" id="stakeholdersGroup">
         <button class="side-group-btn" id="stakeholdersGroupBtn" onclick="toggleSideGroup('stakeholders')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="shield"></span> Stakeholders</span><span class="dot"></span><span class="chev">▸</span></button>
         <div class="side-group-sub" id="stakeholdersSub">
-          <button class="side-tab" data-v="stakeholdersailor">Report for Sailor's</button>
-          <button class="side-tab" data-v="stakeholderpx">PX Report</button>
+          <button class="side-tab" data-v="sailorreport">Report for Sailors</button>
+          <button class="side-tab" data-v="pxreport">PX Report</button>
         </div>
       </div>
       <button class="side-tab" data-v="accessmgmt"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="lock"></span> Access Management</span></button>
@@ -489,7 +482,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 
 <!-- ================= SAILOR'S REPORT (Reports menu) ================= -->
 <section class="view" id="view-sailorreport">
-  <div class="page-head"><h2>Sailor's Report</h2><p>Track misconduct and exception criteria across the team, month by month.</p></div>
+  <div class="page-head"><h2>Report for Sailors</h2><p>Track misconduct and exception criteria across the team, month by month.</p></div>
   <div class="panel" style="margin-bottom:16px">
     <div class="panel-h" style="flex-direction:column;align-items:stretch;gap:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -544,38 +537,6 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   </div>
 </section>
 
-<!-- ================= STAKEHOLDERS: REPORT FOR SAILOR'S ================= -->
-<section class="view" id="view-stakeholdersailor">
-  <div class="page-head"><h2>Report for Sailor's</h2><p>A read-only copy of Sailor's Report for stakeholders, with its own filters — separate from the internal Reports page.</p></div>
-  <div class="panel">
-    <div class="panel-h">
-      <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
-        <h3 style="white-space:nowrap;display:flex;align-items:center;gap:8px">Sailor's Report <select id="stkSailorMonthSel" onchange="onStkSailorMonthChange()" style="padding:6px 10px;line-height:1.4;font-size:13.5px;font-weight:600"></select></h3>
-        <span class="hint">criteria down the side, each with the people flagged for it · calculated from the same logic as the internal Sailor's Report · access &amp; filters will be scoped by RBAC once defined</span>
-      </div>
-    </div>
-    <div class="tblwrap">
-      <table id="stkSailorReportTbl">
-        <thead><tr>
-          <th style="width:40px">#</th>
-          <th style="min-width:220px">Criteria</th>
-          <th>Entries</th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
-<!-- ================= STAKEHOLDERS: PX REPORT ================= -->
-<section class="view" id="view-stakeholderpx">
-  <div class="page-head"><h2>PX Report</h2><p>A read-only copy of the PX Report for stakeholders, with its own filters — separate from the internal Reports page.</p></div>
-  <div class="panel">
-    <div class="panel-h"><h3>PX Report</h3><span class="hint">Coming soon — will mirror the internal PX Report once it has content · access &amp; filters will be scoped by RBAC once defined</span></div>
-    <div class="empty-state" style="padding:60px 20px">Content for PX Report will be added soon.</div>
-  </div>
-</section>
-
 <!-- ================= ACCESS MANAGEMENT ================= -->
 <section class="view" id="view-accessmgmt">
   <div class="page-head"><h2>Access Management</h2><p>Manage who gets stakeholder access and what they can see.</p></div>
@@ -594,7 +555,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1788937006"></script>
+<script src="data.js?v=1788948889"></script>
 <script>
 
 /* ============ icon system — Feather-style inline SVGs, single stroke width/style
@@ -1186,7 +1147,7 @@ function renderOvrLog(){
 }
 function resetOverrides(){
   if(!confirm("Remove ALL manual edits and restore sheet values?"))return;
-  OVR={att:{},sail:{},sailorCriteria:null,sailorManualEntries:{}}; save(); renderAtt(); renderSailorCriteria(); renderSailorReport(); renderStkSailorReport(); renderManualEntryEditor(); renderOvrLog(); toast("All manual edits cleared");
+  OVR={att:{},sail:{},sailorCriteria:null,sailorManualEntries:{}}; save(); renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderOvrLog(); toast("All manual edits cleared");
 }
 
 /* ============ export ============ */
@@ -1243,7 +1204,7 @@ async function syncLiveRun(){
     reloadOk=true;
   }catch(e){ reloadOk=false; }
   setPill(reloadOk?"live":"off");
-  buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria(); renderSailorReport(); renderStkSailorReport(); renderManualEntryEditor(); renderTodayCards(); renderLandingTillDate();
+  buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderTodayCards(); renderLandingTillDate();
   const now = new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
   $("#syncInfo").textContent = !reloadOk ? "Attendance raw data sync unavailable"
     : liveOk ? `Attendance raw data synced ${now}`
@@ -1334,8 +1295,7 @@ function getCriterionValues(month, key){
 let sailReportMonth = getPreviousMonthName();
 function onSailReportMonthChange(){
   sailReportMonth = document.getElementById("sailReportMonthSel").value;
-  renderSailorCriteria(); renderSailorReport(); renderStkSailorReport();
-}
+  renderSailorCriteria(); renderSailorReport();}
 function renderSailorCriteria(){
   const monthSel=document.getElementById("sailReportMonthSel");
   if(monthSel){
@@ -1372,17 +1332,19 @@ function renderSailorCriteria(){
   </tr>`).join("");
 }
 
-/* ---- Sailor's Report (Reports-2026 menu): criteria in rows, entries per row ----
-   Shared by the internal "Sailor's Report" page and the "Stakeholder's Report View"
-   copy — same calculation (getSailorCriteriaList/getCriterionValues), each page just
-   keeps its own month selection and targets its own <select>/<table> ids. */
-function renderSailorReportTable(selId, tblId, month){
-  const sel=document.getElementById(selId);
+/* ---- Sailor's Report ("Report for Sailors", nested under Stakeholders): criteria in rows, entries per row ---- */
+let sailorReportMonth = getPreviousMonthName();
+function onSailorReportMonthChange(){
+  sailorReportMonth = document.getElementById("sailorReportMonthSel").value;
+  renderSailorReport();
+}
+function renderSailorReport(){
+  const sel=document.getElementById("sailorReportMonthSel");
   if(sel){
     if(!sel.options.length) sel.innerHTML = ALL_MONTHS.map(m=>`<option value="${m}">${shortYearLabel(m)}</option>`).join("");
-    sel.value = month;
+    sel.value = sailorReportMonth;
   }
-  const tbody=document.querySelector(`#${tblId} tbody`);
+  const tbody=document.querySelector("#sailorReportTbl tbody");
   if(!tbody) return;
   const criteria=getSailorCriteriaList();
   if(!criteria.length){
@@ -1390,29 +1352,13 @@ function renderSailorReportTable(selId, tblId, month){
     return;
   }
   tbody.innerHTML = criteria.map(c=>{
-    const entries = getCriterionValues(month, c.key);
+    const entries = getCriterionValues(sailorReportMonth, c.key);
     const list = entries.length
       ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${entries.map(e=>`<span class="badge b-mut">${esc(e.name)} — ${esc(e.value)}</span>`).join("")}</div>`
-      : `<span class="none-txt">No entries for ${esc(shortYearLabel(month))}.</span>`;
+      : `<span class="none-txt">No entries for ${esc(shortYearLabel(sailorReportMonth))}.</span>`;
     return `<tr><td>${c.no}</td><td>${esc(c.criteria)}</td><td>${list}</td></tr>`;
   }).join("");
-}
-let sailorReportMonth = getPreviousMonthName();
-function onSailorReportMonthChange(){
-  sailorReportMonth = document.getElementById("sailorReportMonthSel").value;
-  renderSailorReport(); renderStkSailorReport();
-}
-function renderSailorReport(){
-  renderSailorReportTable("sailorReportMonthSel", "sailorReportTbl", sailorReportMonth);
   renderSailorMatrix();
-}
-let stkSailorMonth = getPreviousMonthName();
-function onStkSailorMonthChange(){
-  stkSailorMonth = document.getElementById("stkSailorMonthSel").value;
-  renderStkSailorReport();
-}
-function renderStkSailorReport(){
-  renderSailorReportTable("stkSailorMonthSel", "stkSailorReportTbl", stkSailorMonth);
 }
 
 /* ---- Month-to-Month Comparison matrix: criteria rows x month columns ---- */
@@ -1718,11 +1664,11 @@ function saveCriteriaEdits(){
   }).filter(Boolean);
   if(!list.length){ toast("Add at least one criterion"); return; }
   OVR.sailorCriteria = list;
-  save(); renderSailorCriteria(); renderSailorReport(); renderStkSailorReport(); renderManualEntryEditor(); closeModal(); toast("Criteria saved");
+  save(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); closeModal(); toast("Criteria saved");
 }
 function resetCriteriaToDefault(){
   OVR.sailorCriteria = null;
-  save(); renderSailorCriteria(); renderSailorReport(); renderStkSailorReport(); renderManualEntryEditor(); closeModal(); toast("Reverted to default criteria");
+  save(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); closeModal(); toast("Reverted to default criteria");
 }
 
 /* ---- manual entries for non-computed criteria (Data Editor) ---- */
@@ -1743,8 +1689,7 @@ function removeManualEntry(month, key, index){
   arr.splice(index,1);
   save();
   renderManualEntryEditor();
-  renderSailorCriteria(); renderSailorReport(); renderStkSailorReport();
-  renderOvrLog();
+  renderSailorCriteria(); renderSailorReport();  renderOvrLog();
 }
 function addManualEntryFromForm(){
   const nameEl=document.getElementById("manEntryName"), valEl=document.getElementById("manEntryValue");
@@ -1753,8 +1698,7 @@ function addManualEntryFromForm(){
   addManualEntry(manEntryMonth, manEntryKey, name, value||"—");
   nameEl.value=""; valEl.value=""; nameEl.focus();
   renderManualEntryEditor();
-  renderSailorCriteria(); renderSailorReport(); renderStkSailorReport();
-  renderOvrLog();
+  renderSailorCriteria(); renderSailorReport();  renderOvrLog();
   toast("Entry added");
 }
 function renderManualEntryEditor(){
@@ -1802,15 +1746,14 @@ function onManualEntryCritChange(){ manEntryKey=document.getElementById("manCrit
     const attSel2027=document.getElementById("attMonthSel"); if(attSel2027) attSel2027.value=getPreviousMonthName();
     const lh2027=document.getElementById("landingHome"); if(lh2027) lh2027.style.display="none";
     const pv2027=document.getElementById("pageViews"); if(pv2027) pv2027.style.display="";
-    renderAtt(); renderSailorCriteria(); renderSailorReport(); renderStkSailorReport(); renderManualEntryEditor(); renderOvrLog(); save();
+    renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderOvrLog(); save();
     return;
   }
   populateMonthSelect();
   const attSel=document.getElementById("attMonthSel"); if(attSel) attSel.value=getCurrentMonthName();
   buildTeamMs();
   refreshMatrix(); renderAtt();
-  renderSailorCriteria(); renderSailorReport(); renderStkSailorReport();
-  renderManualEntryEditor();
+  renderSailorCriteria(); renderSailorReport();  renderManualEntryEditor();
   renderOvrLog();
   renderTodayCards();
   renderLandingTillDate();
