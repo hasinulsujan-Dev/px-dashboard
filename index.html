@@ -242,7 +242,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
       <p id="syncInfo">Attendance &amp; Sailor's Report · Jan-2026 … Dec-2026</p>
     </div>
     <div class="spacer"></div>
-    <button class="badge b-mut" id="syncPill" title="Sync Sailor's Report from Google Sheets (Attendance loads from the ZKTeco snapshot in data.js)" onclick="syncLive()">● zkteco-api sync</button>
+    <button class="badge b-mut" id="syncPill" title="Reload the Attendance data.js snapshot (regenerated periodically from the ZKTeco BioTime API)" onclick="syncLive()">● zkteco-api sync</button>
     <button class="btn" onclick="exportAll()">↓ Export</button>
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Switch theme" aria-label="Switch between Light and Dark mode">
       <span class="track"><span class="thumb"></span></span>
@@ -281,7 +281,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     </div>
     <a id="year2027" class="stub" href="#" aria-disabled="true" onclick="return false"><span class="dot"></span> PX Team-2027 <span class="badge b-mut">stub</span></a>
   </nav>
-  <p class="foot-note">2026 Attendance is a periodic snapshot from the <em>ZKTeco BioTime API</em>; Sailor's Report is still live from Google Sheets. 2027 is a separate page (Phase 2, empty shell for now).</p>
+  <p class="foot-note">2026 Attendance is a periodic snapshot from the <em>ZKTeco BioTime API</em>, refreshable in-browser via the sync button; Sailor's Report is entered manually in the Data Editor. 2027 is a separate page (Phase 2, empty shell for now).</p>
   <div id="yearStubBanner" style="display:none;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card2);font-size:12px;color:var(--mut);line-height:1.5">PX Team Dashboard-2027 is not yet live. This is an empty 14-col shell (no 2026 data fetched). Coming next phase.</div>
   </div>
 </aside>
@@ -1084,55 +1084,6 @@ function exportAll(){
   toast("CSV exported");
 }
 
-/* ============ live sync (gviz JSONP) ============ */
-const SHEETS = {
-  // Attendance is no longer synced from "Sample of Attendance-2026" — it's loaded from the
-  // periodic ZKTeco BioTime snapshot embedded in data.js (see fetch-zkteco-snapshot.py).
-  sail:{ id:"1ItMz3DMVH9U2GkY5j_XOLssonrkO-VoQhqVUN49fWPU" }
-};
-const SAIL_TABS = [["Apr-2026","April"],["May-2026","May"],["Jun-2026","June"],["Jul-2026","July"],["Aug-2026","August"],["Sep-2026","September"],["Oct-2026","October"],["Nov-2026","November"],["Dec-2026","December"]];
-
-let gvizSeq = 0;
-function gvizFetch(sheetId, tab, cb){
-  const fn = "__gvizcb" + (++gvizSeq);
-  const tag = document.createElement("script");
-  let done = false;
-  window[fn] = data => {
-    if(done) return; done = true; cleanup();
-    if(data && data.status === "ok" && data.table) cb(gvizToRows(data.table));
-    else cb(null);
-  };
-  tag.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json;responseHandler:${fn}&sheet=${encodeURIComponent(tab)}&headers=1`;
-  function cleanup(){ delete window[fn]; tag.remove(); clearTimeout(tm); }
-  const tm = setTimeout(()=>{ if(!done){ done = true; cleanup(); cb(null); } }, 15000);
-  tag.onerror = ()=>{ if(!done){ done = true; cleanup(); cb(null); } };
-  document.head.appendChild(tag);
-}
-function gvizToRows(t){
-  const rows = [t.cols.map(c => (c.label||"").trim())];
-  (t.rows||[]).forEach(r => rows.push((r.c||[]).map(cell => {
-    if(!cell) return "";
-    if(cell.f != null) return String(cell.f);
-    const v = cell.v;
-    if(v == null) return "";
-    if(v instanceof Date){
-      const pad=n=>String(n).padStart(2,"0");
-      if(v.getFullYear() <= 1900) return pad(v.getHours())+":"+pad(v.getMinutes());
-      return v.getFullYear()+"-"+pad(v.getMonth()+1)+"-"+pad(v.getDate());
-    }
-    if(typeof v==="string"){
-      // gviz time cells arrive as "Date(1899,11,30,H,M,S)" strings
-      const m=v.match(/^Date\(\s*1899\s*,\s*11\s*,\s*30\s*,\s*(\d+)\s*,\s*(\d+)/);
-      if(m) return String(+m[1]).padStart(2,"0")+":"+String(+m[2]).padStart(2,"0");
-      const d=v.match(/^Date\(\s*(\d{4})\s*,\s*(\d+)\s*,\s*(\d+)/);
-      if(d) return `${d[1]}-${String(+d[2]+1).padStart(2,"0")}-${String(+d[3]).padStart(2,"0")}`;
-      return v;
-    }
-    return String(v);
-  })));
-  return rows;
-}
-
 /* --- sync orchestration --- */
 function setPill(state){
   const p=$("#syncPill");
@@ -1152,40 +1103,28 @@ async function syncLive(){
   }
 }
 async function syncLiveRun(){
-  // Attendance now comes from the periodic ZKTeco BioTime snapshot embedded in data.js
-  // (see fetch-zkteco-snapshot.py) — "Sample of Attendance-2026" is intentionally ignored.
-  // This only refreshes Sailor's Report, which still lives on its own separate sheet.
+  // Attendance comes from the periodic ZKTeco BioTime snapshot embedded in data.js
+  // (see fetch-zkteco-snapshot.py). This reloads that file (bypassing the browser cache)
+  // in case a fresh snapshot has been generated since the page loaded, and refreshes
+  // every Attendance-derived view (Monthly Attendance included) from it. Sailor's Report
+  // is entered manually in the Data Editor and is untouched by this.
   setPill("sync");
-  const sailorManual={};
-  const sailSettled = await Promise.all(SAIL_TABS.map(([tab,label])=>
-    new Promise(res=>gvizFetch(SHEETS.sail.id, tab, rows=>res(rows?[label,rows]:null)))
-  ));
-  let anySail=false;
-  for(const entry of sailSettled){
-    if(!entry) continue;
-    anySail=true;
-    const [label, rows] = entry;
-    const parsed=parseSailorTab(rows);
-    if(parsed){ sailorManual[label]=parsed.manual; if(parsed.criteria.length) DATA.sailorCriteria=parsed.criteria; }
-  }
-  DATA.sailorManual=Object.keys(sailorManual).length?sailorManual:DATA.sailorManual;
-  setPill(anySail?"live":"off");
+  let ok=false;
+  try{
+    const text = await fetch(`data.js?v=${Date.now()}`, {cache:"no-store"}).then(r=>{
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      return r.text();
+    });
+    const fresh = new Function(text + "\n;return DATA;")();
+    DATA.months=fresh.months; DATA.employees=fresh.employees; DATA.daily=fresh.daily; DATA.profiles=fresh.profiles;
+    ok=true;
+  }catch(e){ ok=false; }
+  setPill(ok?"live":"off");
   buildTeamMs(); populateMonthSelect(); refreshMatrix(); renderAtt(); renderOvrLog(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderTodayCards(); renderLandingTillDate();
-  $("#syncInfo").textContent=`Attendance: ZKTeco snapshot · Sailor's Report synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}`;
-  toast(anySail ? "Sailor's Report sync complete" : "Sailor's Report sync unavailable");
-}
-function parseSailorTab(rows){
-  let start=-1;
-  for(let i=0;i<3;i++){ if(rows[i]&&rows[i].some(c=>["Criteria","Name"].includes((c||"").trim()))){ start=i+1; break; } }
-  if(start<0) return null;
-  const crit=[], manual={};
-  for(let i=start;i<rows.length;i++){
-    const c=(rows[i][0]||"").trim(); if(!c) continue;
-    const resp=(rows[i][1]||"").trim();
-    if(!crit.some(x=>x.c===c)) crit.push({c,r:resp});
-    manual[c]=rows[i].slice(2).map(x=>(x||"").trim()).filter(Boolean);
-  }
-  return {criteria:crit, manual};
+  $("#syncInfo").textContent = ok
+    ? `Attendance raw data synced ${new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}`
+    : "Attendance raw data sync unavailable";
+  toast(ok ? "Attendance raw data Sync complete" : "Attendance raw data sync unavailable");
 }
 
 /* ============ sailor's report — criteria (fixed default list, editable) ============ */
