@@ -483,21 +483,21 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <section class="view" id="view-sailorreport">
   <div class="page-head"><h2>Sailor's Report</h2><p>Track misconduct and exception criteria across the team, month by month.</p></div>
   <div class="panel" style="margin-bottom:16px">
-    <div class="panel-h" style="align-items:flex-start;gap:12px;flex-wrap:wrap">
-      <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
+    <div class="panel-h" style="flex-direction:column;align-items:stretch;gap:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <h3 style="white-space:nowrap">Individual Flagged <span class="badge b-info" id="individualFlaggedCount" style="display:none">0</span></h3>
-        <span class="hint">search a person, criteria &amp; time frame · without a name typed in, only people flagged in 2 or more of the selected months show up (a repeat within one criterion across months counts too) · searching a name shows that person's matches regardless of count</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div class="team-ms" id="indivCritMs"><button class="ms-btn" id="indivCritMsBtn" onclick="toggleIndivMs('indivCrit')">All criteria ▾</button><div class="ms-menu ms-menu-wide" id="indivCritMsMenu"></div></div>
+          <div class="team-ms" id="indivMonthMs"><button class="ms-btn" id="indivMonthMsBtn" onclick="toggleIndivMs('indivMonth')">All months ▾</button><div class="ms-menu" id="indivMonthMsMenu"></div></div>
+          <button class="btn" onclick="resetIndividualFlagged()" title="Reset search" style="width:36px;height:36px;padding:0;justify-content:center"><span data-icon="refresh-cw"></span></button>
+          <label style="display:flex;align-items:center;gap:6px;height:36px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--mut);font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap"><input type="checkbox" id="indivShowAllCb" onchange="onIndivShowAllCheck(this)"> All Team Members</label>
+          <input type="text" id="indivSearchName" placeholder="Search a name…" oninput="onIndivSearchInput()" autocomplete="off" style="width:200px;height:36px">
+        </div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <div class="team-ms" id="indivCritMs"><button class="ms-btn" id="indivCritMsBtn" onclick="toggleIndivMs('indivCrit')">All criteria ▾</button><div class="ms-menu ms-menu-wide" id="indivCritMsMenu"></div></div>
-        <div class="team-ms" id="indivMonthMs"><button class="ms-btn" id="indivMonthMsBtn" onclick="toggleIndivMs('indivMonth')">All months ▾</button><div class="ms-menu" id="indivMonthMsMenu"></div></div>
-        <button class="btn" onclick="resetIndividualFlagged()" title="Reset search" style="width:36px;height:36px;padding:0;justify-content:center"><span data-icon="refresh-cw"></span></button>
-        <label style="display:flex;align-items:center;gap:6px;height:36px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--mut);font-weight:600;font-size:12.5px;cursor:pointer;white-space:nowrap"><input type="checkbox" id="indivShowAllCb" onchange="onIndivShowAllCheck(this)"> All Team Members</label>
-        <input type="text" id="indivSearchName" placeholder="Search a name…" oninput="onIndivSearchInput()" autocomplete="off" style="width:200px;height:36px">
-      </div>
+      <span class="hint">search a person, criteria &amp; time frame · without a name typed in, only people flagged in 2 or more of the selected months show up (a repeat within one criterion across months counts too) · searching a name shows that person's matches regardless of count</span>
     </div>
     <div id="individualFlaggedCards" style="display:flex;flex-direction:column;gap:16px;padding:16px"></div>
-    <div id="individualFlaggedEmpty" class="empty-state" style="padding:20px">Search a name, or pick specific criteria/months, to see who was flagged in 2 or more months.</div>
+    <div id="individualFlaggedEmpty" class="empty-state" style="padding:16px 20px;text-align:left">Search a name, or pick specific criteria/months, to see who was flagged in 2 or more months.</div>
   </div>
   <div class="panel" style="margin-bottom:16px">
     <div class="panel-h" style="align-items:center;gap:12px">
@@ -548,7 +548,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1788935338"></script>
+<script src="data.js?v=1788937006"></script>
 <script>
 
 /* ============ icon system — Feather-style inline SVGs, single stroke width/style
