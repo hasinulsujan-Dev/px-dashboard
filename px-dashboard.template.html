@@ -551,6 +551,34 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <!-- ================= SAILOR'S REPORT (Reports menu) ================= -->
 <section class="view" id="view-sailorreport">
   <div class="page-head"><h2>Report for Sailors</h2><p>Track misconduct and exception criteria across the team, month by month.</p></div>
+  <div class="landing-2col" style="margin-bottom:16px">
+    <div class="panel" id="srTodayWrap" style="display:none">
+      <div class="panel-h" onclick="toggleSrSection('today')" style="cursor:pointer;user-select:none">
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
+          <h3 style="white-space:nowrap">Today</h3>
+          <span class="hint" id="srTodayHint"></span>
+          <span class="hint" id="srTodayTotalEmp"></span>
+        </div>
+        <span id="srTodayChevIcon" style="font-size:28px;line-height:1;display:inline-block;transition:transform .15s;transform:rotate(-90deg);color:var(--mut)">▾</span>
+      </div>
+      <div id="srTodayBody" style="display:none;padding:16px">
+        <div class="kpis-stack" id="srTodayCards"></div>
+      </div>
+    </div>
+    <div class="panel" id="srTillDateWrap" style="display:none">
+      <div class="panel-h" onclick="toggleSrSection('tilldate')" style="cursor:pointer;user-select:none">
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
+          <h3 style="white-space:nowrap;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">Current month- till date <span id="srTillDateDate" style="font-size:12px;color:var(--mut);font-weight:500"></span></h3>
+          <span class="hint" id="srTillDateHint"></span>
+          <span class="hint" id="srTillDateTotalEmp"></span>
+        </div>
+        <span id="srTillDateChevIcon" style="font-size:28px;line-height:1;display:inline-block;transition:transform .15s;transform:rotate(-90deg);color:var(--mut)">▾</span>
+      </div>
+      <div id="srTillDateBody" style="display:none;padding:16px">
+        <div class="kpis-stack" id="srTillDateCards"></div>
+      </div>
+    </div>
+  </div>
   <div class="panel" style="margin-bottom:16px">
     <div class="panel-h" style="flex-direction:column;align-items:stretch;gap:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -624,7 +652,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1789016252"></script>
+<script src="data.js?v=1789019239"></script>
 <script>
 
 /* ============ icon system — Feather-style inline SVGs, single stroke width/style
@@ -984,6 +1012,7 @@ function renderTodayCards(){
   const mSel=ALL_MONTHS[realToday.getMonth()];
   if(realToday.getFullYear()!==2026 || !(DATA.months||[]).includes(mSel)){
     wrap.style.display="none";
+    const srWrap0=document.getElementById("srTodayWrap"); if(srWrap0) srWrap0.style.display="none";
     return;
   }
   const todayDay=realToday.getDate();
@@ -1008,9 +1037,20 @@ function renderTodayCards(){
   const byName=(a,b)=>(a.name||a).localeCompare(b.name||b);
   TODAY_DETAIL = {attended:attended.sort(), ontime:ontime.sort(byName), late:late.sort(byName), absent:absent.sort()};
   wrap.style.display="";
-  document.getElementById("todayHint").textContent = `${shortYearLabel(mSel)} · day ${todayDay}`;
-  document.getElementById("todayCards").innerHTML=[["Attended",attToday,"today","var(--ok)","var(--okbg)","calendar-check","attended"],["On Time",onTimeToday,"today","var(--acc)","rgba(91,140,255,.12)","clock","ontime"],["Late",lateToday,"today","var(--warn)","var(--warnbg)","bell","late"],["Absent",absentToday,"today","var(--bad)","var(--badbg)","calendar-x","absent"]].map(([l,v,s,c,b,i,k])=>`<div class="kpi kpi-click" style="--kc:${c};--kb:${b}" onclick="openLandingDetail('today','${k}')"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
-  document.getElementById("todayTotalEmp").innerHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash${esc(landingHeadcountNote(mSel))}`;
+  const todayHintTxt = `${shortYearLabel(mSel)} · day ${todayDay}`;
+  const todayCardsHTML=[["Attended",attToday,"today","var(--ok)","var(--okbg)","calendar-check","attended"],["On Time",onTimeToday,"today","var(--acc)","rgba(91,140,255,.12)","clock","ontime"],["Late",lateToday,"today","var(--warn)","var(--warnbg)","bell","late"],["Absent",absentToday,"today","var(--bad)","var(--badbg)","calendar-x","absent"]].map(([l,v,s,c,b,i,k])=>`<div class="kpi kpi-click" style="--kc:${c};--kb:${b}" onclick="openLandingDetail('today','${k}')"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
+  const todayTotalEmpHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash${esc(landingHeadcountNote(mSel))}`;
+  document.getElementById("todayHint").textContent = todayHintTxt;
+  document.getElementById("todayCards").innerHTML = todayCardsHTML;
+  document.getElementById("todayTotalEmp").innerHTML = todayTotalEmpHTML;
+  // Same cards, replicated (collapsible) at the top of Report for Sailors — see toggleSrSection().
+  const srTodayWrap=document.getElementById("srTodayWrap");
+  if(srTodayWrap){
+    srTodayWrap.style.display="";
+    document.getElementById("srTodayHint").textContent = todayHintTxt;
+    document.getElementById("srTodayCards").innerHTML = todayCardsHTML;
+    document.getElementById("srTodayTotalEmp").innerHTML = todayTotalEmpHTML;
+  }
 }
 // "Till date" cards shown on the collapsed PX Team-2026 landing view — current-progress
 // snapshot for the real calendar month, independent of the Attendance page's own filters.
@@ -1023,6 +1063,7 @@ function renderLandingTillDate(){
   const mSel=ALL_MONTHS[realToday.getMonth()];
   if(realToday.getFullYear()!==2026 || !(DATA.months||[]).includes(mSel)){
     wrap.style.display="none";
+    const srWrap0=document.getElementById("srTillDateWrap"); if(srWrap0) srWrap0.style.display="none";
     return;
   }
   const monthIdx=realToday.getMonth();
@@ -1051,10 +1092,23 @@ function renderLandingTillDate(){
   });
   TILLDATE_DETAIL = {attendedByDate, ontimeByDate, lateByDate, absentCounts};
   wrap.style.display="";
-  document.getElementById("landingTillDateDate").textContent = `${String(todayDay).padStart(2,"0")}-${String(monthIdx+1).padStart(2,"0")}-${realToday.getFullYear()}`;
-  document.getElementById("landingTillDateHint").textContent = `through day ${todayDay}, ${wdTillDate} workdays so far`;
-  document.getElementById("landingTillDateCards").innerHTML=[["Attended",attTillDate,"till date this month","var(--ok)","var(--okbg)","calendar-check","attended"],["On Time",onTimeTillDate,"till date this month","var(--acc)","rgba(91,140,255,.12)","clock","ontime"],["Late",lateTillDate,"till date this month","var(--warn)","var(--warnbg)","bell","late"],["Absent",absentTillDate,"till date this month","var(--bad)","var(--badbg)","calendar-x","absent"]].map(([l,v,s,c,b,i,k])=>`<div class="kpi kpi-click" style="--kc:${c};--kb:${b}" onclick="openLandingDetail('tilldate','${k}')"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
-  document.getElementById("landingTillDateTotalEmp").innerHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash${esc(landingHeadcountNote(mSel))}`;
+  const tdDateTxt = `${String(todayDay).padStart(2,"0")}-${String(monthIdx+1).padStart(2,"0")}-${realToday.getFullYear()}`;
+  const tdHintTxt = `through day ${todayDay}, ${wdTillDate} workdays so far`;
+  const tdCardsHTML=[["Attended",attTillDate,"till date this month","var(--ok)","var(--okbg)","calendar-check","attended"],["On Time",onTimeTillDate,"till date this month","var(--acc)","rgba(91,140,255,.12)","clock","ontime"],["Late",lateTillDate,"till date this month","var(--warn)","var(--warnbg)","bell","late"],["Absent",absentTillDate,"till date this month","var(--bad)","var(--badbg)","calendar-x","absent"]].map(([l,v,s,c,b,i,k])=>`<div class="kpi kpi-click" style="--kc:${c};--kb:${b}" onclick="openLandingDetail('tilldate','${k}')"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
+  const tdTotalEmpHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash${esc(landingHeadcountNote(mSel))}`;
+  document.getElementById("landingTillDateDate").textContent = tdDateTxt;
+  document.getElementById("landingTillDateHint").textContent = tdHintTxt;
+  document.getElementById("landingTillDateCards").innerHTML = tdCardsHTML;
+  document.getElementById("landingTillDateTotalEmp").innerHTML = tdTotalEmpHTML;
+  // Same cards, replicated (collapsible) at the top of Report for Sailors — see toggleSrSection().
+  const srTillDateWrap=document.getElementById("srTillDateWrap");
+  if(srTillDateWrap){
+    srTillDateWrap.style.display="";
+    document.getElementById("srTillDateDate").textContent = tdDateTxt;
+    document.getElementById("srTillDateHint").textContent = tdHintTxt;
+    document.getElementById("srTillDateCards").innerHTML = tdCardsHTML;
+    document.getElementById("srTillDateTotalEmp").innerHTML = tdTotalEmpHTML;
+  }
 }
 // Chronological compare for "M/D" date strings within the same 2026 calendar.
 function cmpMD(a,b){ const[am,ad]=a.split("/").map(Number); const[bm,bd]=b.split("/").map(Number); return am-bm||ad-bd; }
@@ -1694,6 +1748,18 @@ function renderSailorMatrix(){
   buildIndivCritMs();
   buildIndivMonthMs();
   renderIndividualFlagged();
+}
+// Today / Current month-till date cards replicated at the top of Report for Sailors —
+// collapsed by default, click the section heading to expand/collapse (see #srTodayWrap etc.).
+const srSectionCollapsed = {today:true, tilldate:true};
+function toggleSrSection(which){
+  srSectionCollapsed[which] = !srSectionCollapsed[which];
+  const collapsed = srSectionCollapsed[which];
+  const bodyId = which==="today" ? "srTodayBody" : "srTillDateBody";
+  const chevId = which==="today" ? "srTodayChevIcon" : "srTillDateChevIcon";
+  const body = document.getElementById(bodyId), chev = document.getElementById(chevId);
+  if(body) body.style.display = collapsed ? "none" : "";
+  if(chev) chev.style.transform = collapsed ? "rotate(-90deg)" : "rotate(0deg)";
 }
 let sailorMatrixCollapsed = true;
 function toggleSailorMatrixCollapse(){
