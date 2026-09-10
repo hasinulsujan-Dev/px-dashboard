@@ -1247,7 +1247,7 @@ function renderAtt(){
   }
   const wdSub = holidayCountThisMonth ? `working days (Fri–Sat + ${holidayCountThisMonth} holiday${holidayCountThisMonth>1?"s":""} excluded)` : "working days (Fri–Sat as weekends)";
   const rosterCount = [...MATRIX.roster.keys()].filter(id=>!isExcludedTeam(MATRIX.roster.get(id)?.team||"") && !isExcludedTeam(MATRIX.idx.get(mSel)?.get(id)?.team||"")).length;
-  $("#kpis").innerHTML=[["Total Employees",`${rosterCount}`,"unique roster head count (ex Support Staff)","var(--acc)","rgba(91,140,255,.12)","users"],["Weekdays",wdCount,wdSub,"var(--ok)","var(--okbg)","calendar-check"],["Attendance",uniqueAtt,"unique attendees in month","var(--warn)","var(--warnbg)","clock"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
+  $("#kpis").innerHTML=[["Attendance",uniqueAtt,"unique attendees in month","var(--warn)","var(--warnbg)","clock"],["Weekdays",wdCount,wdSub,"var(--ok)","var(--okbg)","calendar-check"],["Total Employees",`${rosterCount}`,"unique roster head count (ex Support Staff)","var(--acc)","rgba(91,140,255,.12)","users"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
   $("#tblHint").textContent = distinct + " employees · " + rows.length + " rows · " + shortYearLabel(mSel);
   if(!rows.length){ tb.innerHTML=`<tr><td colspan="14" class="empty-state">No rows for ${mSel} with current filters</td></tr>`; return; }
   tb.innerHTML = rows.map(r=>`
