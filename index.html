@@ -327,6 +327,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
         <button class="side-group-btn" id="dataEditorGroupBtn" data-group="dataEditor" onclick="toggleSideGroup('dataEditor')"><span style="display:inline-flex;align-items:center;gap:8px"><span data-icon="edit"></span> Data Editor</span><span class="dot"></span><span class="chev">▸</span></button>
         <div class="side-group-sub" id="dataEditorSub">
           <button class="side-tab" data-v="db">Sailor's Raw— Manual Entries <span class="cnt" id="ovrCount">0</span></button>
+          <button class="side-tab" data-v="holidays">Holidays</button>
         </div>
       </div>
       <div class="side-group" id="stakeholdersGroup">
@@ -509,6 +510,25 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   </div>
 </section>
 
+<!-- ================= HOLIDAYS ================= -->
+<section class="view" id="view-holidays">
+  <div class="page-head"><h2>Holidays</h2><p>Days that aren't fixed on the usual calendar — added here, they're excluded from Total Working Days and every calculation that depends on it (Monthly Attendance, Sailor's Report criteria, exports) the same way weekends already are.</p></div>
+  <div class="panel">
+    <div class="panel-h">
+      <h3>Holidays</h3>
+      <span class="hint">stored locally, same as other manual entries · Friday/Saturday are already excluded automatically, no need to add those</span>
+    </div>
+    <div style="padding:20px">
+      <div id="holidayList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="date" id="holidayDate" style="width:170px">
+        <input type="text" id="holidayName" placeholder="Name (e.g. Eid-ul-Fitr)…" style="flex:1;min-width:200px">
+        <button class="btn pri" onclick="addHolidayFromForm()"><span data-icon="plus"></span> Add</button>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ================= PX REPORT (Reports menu) ================= -->
 <section class="view" id="view-pxreport">
   <div class="page-head"><h2>PX Report</h2><p>Coming soon — this report will be designed later.</p></div>
@@ -594,7 +614,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1788961850"></script>
+<script src="data.js?v=1789011551"></script>
 <script>
 
 /* ============ icon system — Feather-style inline SVGs, single stroke width/style
@@ -618,6 +638,7 @@ const ICON_PATHS = {
   menu: '<path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/>',
   shield: '<path d="M12 2 4 5v6c0 5 3.5 9.3 8 11 4.5-1.7 8-6 8-11V5Z"/>',
   lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
 };
 function icon(name, size=14){
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none">${ICON_PATHS[name]||""}</svg>`;
@@ -629,7 +650,8 @@ const shortYearLabel = m => m.slice(0,3) + "-" + YEAR;
 const dashLabel = "PX Team Dashboard-" + YEAR;
 const LS_KEY = "pxdash-overrides-v1";
 let OVR = load();
-function load(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{att:{},sail:{}}}catch(e){return{att:{},sail:{}}} }
+if(!Array.isArray(OVR.holidays)) OVR.holidays = []; // upgrade path for OVR saved before Holidays existed
+function load(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{att:{},sail:{},holidays:[]}}catch(e){return{att:{},sail:{},holidays:[]}} }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(OVR)); document.getElementById("ovrCount").textContent = ovrTotal(); }
 function ovrTotal(){
   let n = Object.keys(OVR.att).length + Object.keys(OVR.sail).length;
@@ -797,8 +819,53 @@ const isMonthlyAttendanceTeam = team => {
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),2200); }
 
 /* ============ effective (override-aware) rows ============ */
+function getHolidaySet(){ return new Set((OVR.holidays||[]).map(h=>h.date)); }
+// Recomputes att/wd/absent/late/b8/eco/avg/band straight from DATA.daily's per-day rows
+// instead of trusting the static numbers fetch-zkteco-snapshot.py baked into data.js —
+// needed so a manually-added Holiday (see the Holidays page) can remove a day from the
+// working-day count, which a precomputed month-wide number can never do. Mirrors the
+// same per-day rules the fetch script uses (see CLAUDE.md), plus the holiday exclusion.
+function computeEmployeeAgg(emp, month){
+  const holidays = getHolidaySet();
+  const yearNum = +YEAR;
+  let wd=0, att=0, late=0, b8=0, eco=0;
+  const hours=[];
+  (DATA.daily[month]||[]).forEach(d=>{
+    if(d[0]!==emp) return;
+    const dateStr=d[1], cin=d[2], cout=d[3], status=d[4];
+    const [mm,dd]=dateStr.split("/").map(Number);
+    if(!mm || !dd) return;
+    const dow=new Date(yearNum, mm-1, dd).getDay();
+    if(dow===5||dow===6) return; // weekend
+    if(holidays.has(dateStr)) return; // holiday — not a working day
+    wd++;
+    if(status==="Absent") return;
+    att++;
+    if(status==="Late") late++;
+    if(cin!=null && cout!=null){
+      let m2=cout-cin; if(m2<0) m2+=1440;
+      const h=m2/60; // keep unrounded — averaging pre-rounded per-day hours drifts from the
+      hours.push(h); // Python snapshot's average-then-round, off by 0.01 on some employees
+      if(h<8) b8++;
+    }
+    if(cout!=null && cout<19*60) eco++;
+  });
+  const avg = hours.length ? Math.round((hours.reduce((a,b)=>a+b,0)/hours.length)*100)/100 : null;
+  const band = avg==null ? "" : (avg<9 ? "<9" : ">9");
+  return {wd, att, absent:wd-att, late, b8, eco, avg, band};
+}
 function effRow(emp, month){
-  const base = {...DATA.employees[month].find(e=>e.id===emp)};
+  const empList = DATA.employees[month];
+  const staticRow = empList.find(e=>e.id===emp) || {};
+  // A handful of Support Staff roles (cleaners, cooks, etc.) don't get a real unique BioTime
+  // employee code the way regular staff do, so two different real people can share the exact
+  // same literal id — DATA.daily can't tell their punches apart under a shared id, so
+  // recomputing from it here would merge two people's attendance into one. Keep the static
+  // numbers fetch-zkteco-snapshot.py already computed correctly per real person for those
+  // (this also matches effRow's pre-existing behavior for them); only recompute holiday-
+  // aware numbers for employees whose id is genuinely unique this month.
+  const isDuplicateId = empList.filter(e=>e.id===emp).length > 1;
+  const base = isDuplicateId ? {...staticRow} : {...staticRow, ...computeEmployeeAgg(emp, month)};
   const o = OVR.att?.[emp+"@"+month];
   if(o) Object.assign(base, o);
   return base;
@@ -918,6 +985,7 @@ function renderTodayCards(){
     if(!isLandingTeam(team)) return;
     const dow=realToday.getDay();
     if(dow===5||dow===6) return;
+    if(getHolidaySet().has(`${realToday.getMonth()+1}/${todayDay}`)) return;
     if(status==="Absent"){ absentToday++; return; }
     attToday++;
     if(status==="Late") lateToday++; else onTimeToday++;
@@ -940,8 +1008,9 @@ function renderLandingTillDate(){
   }
   const monthIdx=realToday.getMonth();
   const todayDay=realToday.getDate();
+  const holidaySetTillDate=getHolidaySet();
   let wdTillDate=0;
-  for(let d=1; d<=todayDay; d++){ const dow=new Date(2026, monthIdx, d).getDay(); if(dow!==5 && dow!==6) wdTillDate++; }
+  for(let d=1; d<=todayDay; d++){ const dow=new Date(2026, monthIdx, d).getDay(); if(dow===5||dow===6) continue; if(holidaySetTillDate.has(`${monthIdx+1}/${d}`)) continue; wdTillDate++; }
   let attTillDate=0, absentTillDate=0, lateTillDate=0, onTimeTillDate=0;
   (DATA.daily[mSel]||[]).forEach(d=>{
     const emp=d[0], dateStr=d[1], status=d[4];
@@ -952,6 +1021,7 @@ function renderLandingTillDate(){
     if(!isLandingTeam(team)) return;
     const dow=new Date(2026, monthIdx, day).getDay();
     if(dow===5||dow===6) return;
+    if(holidaySetTillDate.has(`${monthIdx+1}/${day}`)) return;
     if(status==="Absent"){ absentTillDate++; return; }
     attTillDate++;
     if(status==="Late") lateTillDate++; else onTimeTillDate++;
@@ -1092,6 +1162,7 @@ function renderAtt(){
   let rows = [];
   // Daily rows from embedded DATA (sheet-sourced January); no live fetch
   const daily = (DATA.daily[mSel]||[]);
+  const holidaySet = getHolidaySet();
   for(const d of daily){
     const emp=d[0], dateStr=d[1], cin=d[2], cout=d[3], status=d[4];
     const prof = profMap[emp]||{};
@@ -1107,7 +1178,7 @@ function renderAtt(){
       const mm=parseInt(parts[0],10), dd=parseInt(parts[1],10);
       if(!isNaN(mm)&&!isNaN(dd)){ const dow=new Date(2026,mm-1,dd).getDay(); dowWeek=(dow===5||dow===6)?"Weekend":"Weekday"; }
     }
-    const dowLabel = dowWeek;
+    const dowLabel = (dowWeek==="Weekday" && holidaySet.has(dateStr)) ? "Holiday" : dowWeek;
     const hours = (cin!=null&&cout!=null)? ((cout-cin+1440)%1440)/60 : null;
     const workStr = hours!=null ? (Math.floor(hours)+":"+String(Math.round((hours%1)*60)).padStart(2,"0")+":00") : "—";
     const early = cout!=null && cout<19*60 ? "Yes" : (cin!=null?"No":"—");
@@ -1162,14 +1233,21 @@ function renderAtt(){
   // includes Support Staff, since Monthly Attendance keeps that data).
   const attEmps = new Set(rows.filter(r=>r.cin!=null && !isExcludedTeam(r.team||"")).map(r=>r.emp));
   const uniqueAtt = attEmps.size;
-  // Calendar working days for this month (Fri & Sat excluded) — not per-employee
+  // Working days for this month (Fri & Sat, plus any added Holiday, excluded) — not per-employee
   const ym = mSel;
   const monthIdx = ["January","February","March","April","May","June","July","August","September","October","November","December"].indexOf(ym);
   const daysInMonth = new Date(2026, monthIdx+1, 0).getDate();
-  let wdCount = 0;
-  for(let d=1; d<=daysInMonth; d++){ const dow=new Date(2026, monthIdx, d).getDay(); if(dow!==5 && dow!==6) wdCount++; }
+  const holidaySetKpi = getHolidaySet();
+  let wdCount = 0, holidayCountThisMonth = 0;
+  for(let d=1; d<=daysInMonth; d++){
+    const dow=new Date(2026, monthIdx, d).getDay();
+    if(dow===5 || dow===6) continue;
+    if(holidaySetKpi.has(`${monthIdx+1}/${d}`)){ holidayCountThisMonth++; continue; }
+    wdCount++;
+  }
+  const wdSub = holidayCountThisMonth ? `working days (Fri–Sat + ${holidayCountThisMonth} holiday${holidayCountThisMonth>1?"s":""} excluded)` : "working days (Fri–Sat as weekends)";
   const rosterCount = [...MATRIX.roster.keys()].filter(id=>!isExcludedTeam(MATRIX.roster.get(id)?.team||"") && !isExcludedTeam(MATRIX.idx.get(mSel)?.get(id)?.team||"")).length;
-  $("#kpis").innerHTML=[["Total Employees",`${rosterCount}`,"unique roster head count (ex Support Staff)","var(--acc)","rgba(91,140,255,.12)","users"],["Weekdays",wdCount,"calendar working days (Fri–Sat as weekends)","var(--ok)","var(--okbg)","calendar-check"],["Attendance",uniqueAtt,"unique attendees in month","var(--warn)","var(--warnbg)","clock"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
+  $("#kpis").innerHTML=[["Total Employees",`${rosterCount}`,"unique roster head count (ex Support Staff)","var(--acc)","rgba(91,140,255,.12)","users"],["Weekdays",wdCount,wdSub,"var(--ok)","var(--okbg)","calendar-check"],["Attendance",uniqueAtt,"unique attendees in month","var(--warn)","var(--warnbg)","clock"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
   $("#tblHint").textContent = distinct + " employees · " + rows.length + " rows · " + shortYearLabel(mSel);
   if(!rows.length){ tb.innerHTML=`<tr><td colspan="14" class="empty-state">No rows for ${mSel} with current filters</td></tr>`; return; }
   tb.innerHTML = rows.map(r=>`
@@ -1227,15 +1305,16 @@ function openEmp(id, month){
         </div>`).join("")}
       </div>
 
-      <div class="sec-t">Daily log — ${month} <span style="text-transform:none;font-weight:500">(weekends Fri/Sat shown dimmed)</span></div>
+      <div class="sec-t">Daily log — ${month} <span style="text-transform:none;font-weight:500">(weekends Fri/Sat and Holidays shown dimmed)</span></div>
       <div class="tblwrap" style="max-height:240px">
         <table><thead><tr><th>Date</th><th>Day</th><th>Clock In</th><th>Clock Out</th><th>Hours</th><th>Status</th></tr></thead><tbody>
         ${daily.map(d=>{
           const dt=new Date("2026-"+d[1]); const dow=dt.getDay();
           const wk = dow===5||dow===6;
+          const isHol = !wk && getHolidaySet().has(d[1]);
           const hrs = d[2]!=null&&d[3]!=null ? ((d[3]-d[2]+1440)%1440)/60 : null;
-          return `<tr style="${wk?"opacity:.45":""}">
-            <td>${d[1]}</td><td style="color:var(--mut)">${wk?"Weekend":"Weekday"}</td>
+          return `<tr style="${(wk||isHol)?"opacity:.45":""}">
+            <td>${d[1]}</td><td style="color:var(--mut)">${isHol?"Holiday":wk?"Weekend":"Weekday"}</td>
             <td>${fmtClock(d[2])||"—"}</td><td>${fmtClock(d[3])||"—"}</td>
             <td>${hrs!=null?hrs.toFixed(2)+"h":"—"}</td>
             <td><span class="badge ${d[4]==="Late"?"b-bad":d[4]==="On Time"?"b-ok":"b-mut"}">${d[4]}</span></td></tr>`;
@@ -1275,8 +1354,8 @@ function renderOvrLog(){
   // (#ovrCount) is still kept in sync by save(), so this is a no-op now.
 }
 function resetOverrides(){
-  if(!confirm("Remove ALL manual edits and restore sheet values?"))return;
-  OVR={att:{},sail:{},sailorCriteria:null,sailorManualEntries:{}}; save(); renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderOvrLog(); toast("All manual edits cleared");
+  if(!confirm("Remove ALL manual edits and restore sheet values? (Holidays are managed separately and are not affected.)"))return;
+  OVR={att:{},sail:{},sailorCriteria:null,sailorManualEntries:{},holidays:OVR.holidays||[]}; save(); refreshMatrix(); renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderOvrLog(); toast("All manual edits cleared");
 }
 
 /* ============ export ============ */
@@ -1869,6 +1948,55 @@ function renderManualEntryEditor(){
 function onManualEntryMonthChange(){ manEntryMonth=document.getElementById("manMonthSel").value; renderManualEntryEditor(); }
 function onManualEntryCritChange(){ manEntryKey=document.getElementById("manCritSel").value; renderManualEntryEditor(); }
 
+/* ---- Holidays: manually-added non-weekend days off, excluded from Total Working Days
+   (see effRow()/computeEmployeeAgg() — this is the only other place that logic lives) ---- */
+function refreshAfterHolidayChange(){
+  refreshMatrix(); renderAtt(); renderSailorCriteria(); renderSailorReport(); renderHolidays();
+  renderTodayCards(); renderLandingTillDate();
+}
+function addHolidayFromForm(){
+  const dateInput=document.getElementById("holidayDate");
+  const nameInput=document.getElementById("holidayName");
+  const raw=dateInput.value;
+  if(!raw){ toast("Pick a date first"); return; }
+  const [y,m,d]=raw.split("-").map(Number);
+  if(y!==+YEAR){ toast(`Pick a date in ${YEAR}`); return; }
+  const dateStr=`${m}/${d}`;
+  OVR.holidays = OVR.holidays||[];
+  if(OVR.holidays.some(h=>h.date===dateStr)){ toast("That date is already added"); return; }
+  OVR.holidays.push({date:dateStr, name:(nameInput.value||"").trim() || "Holiday"});
+  OVR.holidays.sort((a,b)=>{ const[am,ad]=a.date.split("/").map(Number); const[bm,bd]=b.date.split("/").map(Number); return am-bm||ad-bd; });
+  save();
+  dateInput.value=""; nameInput.value="";
+  refreshAfterHolidayChange();
+  toast("Holiday added");
+}
+function removeHoliday(idx){
+  OVR.holidays.splice(idx,1);
+  save();
+  refreshAfterHolidayChange();
+  toast("Holiday removed");
+}
+function renderHolidays(){
+  const list=document.getElementById("holidayList");
+  if(!list) return;
+  const dateInput=document.getElementById("holidayDate");
+  if(dateInput){ dateInput.min=`${YEAR}-01-01`; dateInput.max=`${YEAR}-12-31`; }
+  const holidays=OVR.holidays||[];
+  if(!holidays.length){
+    list.innerHTML = `<div class="empty-state" style="padding:20px">No holidays added yet — weekends (Fri/Sat) are already excluded automatically.</div>`;
+    return;
+  }
+  list.innerHTML = holidays.map((h,i)=>{
+    const [m,d]=h.date.split("/").map(Number);
+    const label = new Date(+YEAR, m-1, d).toLocaleDateString([], {weekday:"short", month:"short", day:"numeric", year:"numeric"});
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card2)">
+      <div><b>${esc(label)}</b><span style="color:var(--mut);margin-left:8px">${esc(h.name)}</span></div>
+      <button title="remove" onclick="removeHoliday(${i})" style="width:26px;height:26px;flex:none;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--mut);cursor:pointer;font-size:14px;line-height:1">×</button>
+    </div>`;
+  }).join("");
+}
+
 
 /* ============ boot ============ */
 /* Keeps --header-h (the sidebar's sticky top offset / height calc) equal to header.top's
@@ -1900,7 +2028,7 @@ if(document.fonts?.ready) document.fonts.ready.then(syncHeaderHeight);
     const attSel2027=document.getElementById("attMonthSel"); if(attSel2027) attSel2027.value=getPreviousMonthName();
     const lh2027=document.getElementById("landingHome"); if(lh2027) lh2027.style.display="none";
     const pv2027=document.getElementById("pageViews"); if(pv2027) pv2027.style.display="";
-    renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderOvrLog(); save();
+    renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderHolidays(); renderOvrLog(); save();
     return;
   }
   populateMonthSelect();
@@ -1908,6 +2036,7 @@ if(document.fonts?.ready) document.fonts.ready.then(syncHeaderHeight);
   buildTeamMs();
   refreshMatrix(); renderAtt();
   renderSailorCriteria(); renderSailorReport();  renderManualEntryEditor();
+  renderHolidays();
   renderOvrLog();
   renderTodayCards();
   renderLandingTillDate();
