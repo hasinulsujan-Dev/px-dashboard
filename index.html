@@ -124,6 +124,8 @@ main{padding:26px 24px 80px;min-width:0;width:100%}
 .kpi .val{font-size:27px;font-weight:650;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}
 .kpi .sub{font-size:11.5px;color:var(--dim)}
 .kpi .icn{position:absolute;right:14px;top:14px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--kb,rgba(91,140,255,.12));color:var(--kc,var(--acc))}
+.kpi-click{cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
+.kpi-click:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
 
 /* ---------- table ---------- */
 .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
@@ -187,6 +189,7 @@ tbody tr:hover{background:color-mix(in srgb,var(--card2) 70%,transparent)}
 .overlay{position:fixed;inset:0;background:rgba(5,8,15,.66);backdrop-filter:blur(4px);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:5vh 20px;overflow:auto}
 .overlay.on{display:flex;animation:fade .18s ease}
 .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;width:100%;max-width:860px;box-shadow:var(--shadow-lg);animation:pop .22s cubic-bezier(.2,.9,.3,1.2)}
+.modal.modal-sm{max-width:460px}
 @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
 .modal-h{display:flex;align-items:center;gap:14px;padding:20px 24px;border-bottom:1px solid var(--line)}
 .modal-h .avat{width:42px;height:42px;font-size:14px}
@@ -621,7 +624,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1789011551"></script>
+<script src="data.js?v=1789016252"></script>
 <script>
 
 /* ============ icon system — Feather-style inline SVGs, single stroke width/style
@@ -972,6 +975,8 @@ function getCurrentMonthName(){ return ALL_MONTHS[new Date().getMonth()]; }
 // "Today" cards shown on the collapsed PX Team-2026 landing view — counts for the real
 // calendar day only (one row per employee per day in DATA.daily, so this is an unduplicated
 // unique-headcount total; excluded teams are skipped the same way as everywhere else).
+// TODAY_DETAIL backs the click-through popup on each card (see openLandingDetail()).
+let TODAY_DETAIL = {attended:[], ontime:[], late:[], absent:[]};
 function renderTodayCards(){
   const wrap=document.getElementById("todayWrap");
   if(!wrap) return;
@@ -983,8 +988,9 @@ function renderTodayCards(){
   }
   const todayDay=realToday.getDate();
   let attToday=0, absentToday=0, lateToday=0, onTimeToday=0;
+  const attended=[], ontime=[], late=[], absent=[];
   (DATA.daily[mSel]||[]).forEach(d=>{
-    const emp=d[0], dateStr=d[1], status=d[4];
+    const emp=d[0], dateStr=d[1], cin=d[2], status=d[4];
     const day=parseInt(dateStr.split("/")[1],10);
     if(day!==todayDay) return;
     const prof=DATA.profiles?.[emp]||{};
@@ -993,17 +999,23 @@ function renderTodayCards(){
     const dow=realToday.getDay();
     if(dow===5||dow===6) return;
     if(getHolidaySet().has(`${realToday.getMonth()+1}/${todayDay}`)) return;
-    if(status==="Absent"){ absentToday++; return; }
-    attToday++;
-    if(status==="Late") lateToday++; else onTimeToday++;
+    const name = prof.name || MATRIX.roster.get(emp)?.name || emp;
+    if(status==="Absent"){ absentToday++; absent.push(name); return; }
+    attToday++; attended.push(name);
+    if(status==="Late"){ lateToday++; late.push({name,time:fmtClock(cin)}); }
+    else { onTimeToday++; ontime.push({name,time:fmtClock(cin)}); }
   });
+  const byName=(a,b)=>(a.name||a).localeCompare(b.name||b);
+  TODAY_DETAIL = {attended:attended.sort(), ontime:ontime.sort(byName), late:late.sort(byName), absent:absent.sort()};
   wrap.style.display="";
   document.getElementById("todayHint").textContent = `${shortYearLabel(mSel)} · day ${todayDay}`;
-  document.getElementById("todayCards").innerHTML=[["Attended",attToday,"today","var(--ok)","var(--okbg)","calendar-check"],["On Time",onTimeToday,"today","var(--acc)","rgba(91,140,255,.12)","clock"],["Late",lateToday,"today","var(--warn)","var(--warnbg)","bell"],["Absent",absentToday,"today","var(--bad)","var(--badbg)","calendar-x"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
+  document.getElementById("todayCards").innerHTML=[["Attended",attToday,"today","var(--ok)","var(--okbg)","calendar-check","attended"],["On Time",onTimeToday,"today","var(--acc)","rgba(91,140,255,.12)","clock","ontime"],["Late",lateToday,"today","var(--warn)","var(--warnbg)","bell","late"],["Absent",absentToday,"today","var(--bad)","var(--badbg)","calendar-x","absent"]].map(([l,v,s,c,b,i,k])=>`<div class="kpi kpi-click" style="--kc:${c};--kb:${b}" onclick="openLandingDetail('today','${k}')"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
   document.getElementById("todayTotalEmp").innerHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash${esc(landingHeadcountNote(mSel))}`;
 }
 // "Till date" cards shown on the collapsed PX Team-2026 landing view — current-progress
 // snapshot for the real calendar month, independent of the Attendance page's own filters.
+// TILLDATE_DETAIL backs the click-through popup on each card (see openLandingDetail()).
+let TILLDATE_DETAIL = {attendedByDate:{}, ontimeByDate:{}, lateByDate:{}, absentCounts:{}};
 function renderLandingTillDate(){
   const wrap=document.getElementById("landingTillDateWrap");
   if(!wrap) return;
@@ -1019,8 +1031,9 @@ function renderLandingTillDate(){
   let wdTillDate=0;
   for(let d=1; d<=todayDay; d++){ const dow=new Date(2026, monthIdx, d).getDay(); if(dow===5||dow===6) continue; if(holidaySetTillDate.has(`${monthIdx+1}/${d}`)) continue; wdTillDate++; }
   let attTillDate=0, absentTillDate=0, lateTillDate=0, onTimeTillDate=0;
+  const attendedByDate={}, ontimeByDate={}, lateByDate={}, absentCounts={};
   (DATA.daily[mSel]||[]).forEach(d=>{
-    const emp=d[0], dateStr=d[1], status=d[4];
+    const emp=d[0], dateStr=d[1], cin=d[2], status=d[4];
     const day=parseInt(dateStr.split("/")[1],10);
     if(day>todayDay) return;
     const prof=DATA.profiles?.[emp]||{};
@@ -1029,15 +1042,68 @@ function renderLandingTillDate(){
     const dow=new Date(2026, monthIdx, day).getDay();
     if(dow===5||dow===6) return;
     if(holidaySetTillDate.has(`${monthIdx+1}/${day}`)) return;
-    if(status==="Absent"){ absentTillDate++; return; }
+    const name = prof.name || MATRIX.roster.get(emp)?.name || emp;
+    if(status==="Absent"){ absentTillDate++; absentCounts[name]=(absentCounts[name]||0)+1; return; }
     attTillDate++;
-    if(status==="Late") lateTillDate++; else onTimeTillDate++;
+    attendedByDate[dateStr]=(attendedByDate[dateStr]||0)+1;
+    if(status==="Late"){ lateTillDate++; (lateByDate[dateStr]=lateByDate[dateStr]||[]).push({name,time:fmtClock(cin)}); }
+    else { onTimeTillDate++; (ontimeByDate[dateStr]=ontimeByDate[dateStr]||[]).push({name,time:fmtClock(cin)}); }
   });
+  TILLDATE_DETAIL = {attendedByDate, ontimeByDate, lateByDate, absentCounts};
   wrap.style.display="";
   document.getElementById("landingTillDateDate").textContent = `${String(todayDay).padStart(2,"0")}-${String(monthIdx+1).padStart(2,"0")}-${realToday.getFullYear()}`;
   document.getElementById("landingTillDateHint").textContent = `through day ${todayDay}, ${wdTillDate} workdays so far`;
-  document.getElementById("landingTillDateCards").innerHTML=[["Attended",attTillDate,"till date this month","var(--ok)","var(--okbg)","calendar-check"],["On Time",onTimeTillDate,"till date this month","var(--acc)","rgba(91,140,255,.12)","clock"],["Late",lateTillDate,"till date this month","var(--warn)","var(--warnbg)","bell"],["Absent",absentTillDate,"till date this month","var(--bad)","var(--badbg)","calendar-x"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
+  document.getElementById("landingTillDateCards").innerHTML=[["Attended",attTillDate,"till date this month","var(--ok)","var(--okbg)","calendar-check","attended"],["On Time",onTimeTillDate,"till date this month","var(--acc)","rgba(91,140,255,.12)","clock","ontime"],["Late",lateTillDate,"till date this month","var(--warn)","var(--warnbg)","bell","late"],["Absent",absentTillDate,"till date this month","var(--bad)","var(--badbg)","calendar-x","absent"]].map(([l,v,s,c,b,i,k])=>`<div class="kpi kpi-click" style="--kc:${c};--kb:${b}" onclick="openLandingDetail('tilldate','${k}')"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
   document.getElementById("landingTillDateTotalEmp").innerHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash${esc(landingHeadcountNote(mSel))}`;
+}
+// Chronological compare for "M/D" date strings within the same 2026 calendar.
+function cmpMD(a,b){ const[am,ad]=a.split("/").map(Number); const[bm,bd]=b.split("/").map(Number); return am-bm||ad-bd; }
+// Popup for a landing KPI card — reuses the same #modalBox/#ovl as the employee modal.
+function openLandingDetail(section, kind){
+  const isToday = section==="today";
+  const titleMap={attended:"Attended",ontime:"On Time",late:"Late",absent:"Absent"};
+  const label = titleMap[kind];
+  const when = isToday ? document.getElementById("todayHint").textContent : `till date · ${document.getElementById("landingTillDateHint").textContent}`;
+  let body;
+  if(isToday){
+    const d = TODAY_DETAIL[kind]||[];
+    if(!d.length){ body = `<div class="empty-state">No one to show</div>`; }
+    else if(kind==="ontime" || kind==="late"){
+      body = `<div class="tblwrap"><table><thead><tr><th>Name</th><th>Clock In</th></tr></thead><tbody>
+        ${d.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.time)||"—"}</td></tr>`).join("")}
+      </tbody></table></div>`;
+    } else {
+      body = `<div class="tblwrap"><table><tbody>${d.map(n=>`<tr><td>${esc(n)}</td></tr>`).join("")}</tbody></table></div>`;
+    }
+  } else {
+    if(kind==="attended"){
+      const dates = Object.keys(TILLDATE_DETAIL.attendedByDate).sort(cmpMD);
+      body = !dates.length ? `<div class="empty-state">No data yet</div>` : `<div class="tblwrap"><table><thead><tr><th>Date</th><th>Head Count</th></tr></thead><tbody>
+        ${dates.map(dt=>`<tr><td>${esc(dt)}</td><td>${TILLDATE_DETAIL.attendedByDate[dt]}</td></tr>`).join("")}
+      </tbody></table></div>`;
+    } else if(kind==="ontime" || kind==="late"){
+      const byDate = kind==="ontime" ? TILLDATE_DETAIL.ontimeByDate : TILLDATE_DETAIL.lateByDate;
+      const dates = Object.keys(byDate).sort(cmpMD);
+      body = !dates.length ? `<div class="empty-state">No data yet</div>` : dates.map(dt=>`
+        <div class="sec-t">${esc(dt)}</div>
+        <div class="tblwrap"><table><thead><tr><th>Name</th><th>Clock In</th></tr></thead><tbody>
+          ${byDate[dt].sort((a,b)=>a.name.localeCompare(b.name)).map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.time)||"—"}</td></tr>`).join("")}
+        </tbody></table></div>`).join("");
+    } else {
+      const names = Object.keys(TILLDATE_DETAIL.absentCounts).sort();
+      body = !names.length ? `<div class="empty-state">No one to show</div>` : `<div class="tblwrap"><table><thead><tr><th>Name</th><th>Days Absent</th></tr></thead><tbody>
+        ${names.map(n=>`<tr><td>${esc(n)}</td><td>${TILLDATE_DETAIL.absentCounts[n]}</td></tr>`).join("")}
+      </tbody></table></div>`;
+    }
+  }
+  $("#modalBox").classList.add("modal-sm");
+  $("#modalBox").innerHTML = `
+    <div class="modal-h">
+      <div><h3>${label}</h3><div class="sub">${esc(when)}</div></div>
+      <button class="x-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-b" style="max-height:60vh">${body}</div>`;
+  $("#ovl").classList.add("on");
 }
 function fmtDuration(h){ if(h==null) return "—"; const sec=Math.round(h*3600); const hh=String(Math.floor(sec/3600)).padStart(2,"0"); const mm=String(Math.floor((sec%3600)/60)).padStart(2,"0"); const ss=String(sec%60).padStart(2,"0"); return `${hh}:${mm}:${ss}`; }
 
@@ -1288,6 +1354,7 @@ function openEmp(id, month){
   const maxAtt = Math.max(...hist.map(h=>h.att),1);
   const daily = (DATA.daily[month]||[]).filter(d=>d[0]===id);
   const o = OVR.att?.[id+"@"+month]||{};
+  $("#modalBox").classList.remove("modal-sm");
   $("#modalBox").innerHTML = `
     <div class="modal-h">
       <span class="avat">${esc(initials(r.name))}</span>
@@ -1841,6 +1908,7 @@ function renderIndividualFlagged(){
 /* ---- criteria editor (titles only; calculated columns stay linked by key) ---- */
 function openCriteriaEditor(){
   const list = getSailorCriteriaList();
+  $("#modalBox").classList.remove("modal-sm");
   $("#modalBox").innerHTML = `
     <div class="modal-h">
       <div><h3>Edit Sailor's Report Criteria</h3><div class="sub">Titles only — calculated columns (Late Check-in, Partial Attendance, etc.) stay linked to their existing logic</div></div>
