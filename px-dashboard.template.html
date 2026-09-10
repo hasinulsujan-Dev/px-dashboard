@@ -113,7 +113,9 @@ main{padding:26px 24px 80px;min-width:0;width:100%}
 
 /* ---------- KPI ---------- */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:14px;margin-bottom:20px}
-.kpis-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.kpis-stack{display:grid;grid-template-columns:1fr;gap:14px}
+.landing-2col{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+@media(max-width:720px){.landing-2col{grid-template-columns:1fr}}
 .landing-total{margin-top:-8px;margin-bottom:20px;padding:12px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);font-size:12.5px;color:var(--mut)}
 .landing-total b{color:var(--txt);font-weight:650;letter-spacing:-0.02em}
 .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
@@ -350,27 +352,32 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <!-- ================= LANDING (shown while PX Team-2026 is collapsed) ================= -->
 <div id="landingHome">
   <div class="page-head"><h2>Overview</h2></div>
-  <div id="todayWrap" style="display:none;margin-bottom:24px">
-    <div style="margin:0 0 10px 2px">
-      <h3 style="font-size:14.5px;font-weight:600;letter-spacing:-0.02em;color:var(--txt);margin:0 0 4px 0">Today</h3>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div id="todayHint" style="font-size:12px;color:var(--mut)"></div>
-        <span style="color:var(--dim)">|</span>
-        <div id="todayTotalEmp" style="font-size:12px;color:var(--mut)"></div>
+  <div class="landing-2col">
+    <div id="todayWrap" style="display:none">
+      <div style="margin:0 0 10px 2px">
+        <h3 style="font-size:14.5px;font-weight:600;letter-spacing:-0.02em;color:var(--txt);margin:0 0 4px 0">Today</h3>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div id="todayHint" style="font-size:12px;color:var(--mut)"></div>
+          <span style="color:var(--dim)">|</span>
+          <div id="todayTotalEmp" style="font-size:12px;color:var(--mut)"></div>
+        </div>
       </div>
+      <div class="kpis-stack" id="todayCards"></div>
     </div>
-    <div class="kpis-2col" id="todayCards"></div>
-  </div>
-  <div id="landingTillDateWrap" style="display:none">
-    <div style="margin:0 0 10px 2px">
-      <h3 style="font-size:14.5px;font-weight:600;letter-spacing:-0.02em;color:var(--txt);margin:0 0 4px 0">Current month- till date</h3>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div id="landingTillDateHint" style="font-size:12px;color:var(--mut)"></div>
-        <span style="color:var(--dim)">|</span>
-        <div id="landingTillDateTotalEmp" style="font-size:12px;color:var(--mut)"></div>
+    <div id="landingTillDateWrap" style="display:none">
+      <div style="margin:0 0 10px 2px">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 4px 0">
+          <h3 style="font-size:14.5px;font-weight:600;letter-spacing:-0.02em;color:var(--txt);margin:0">Current month- till date</h3>
+          <div id="landingTillDateDate" style="font-size:12px;color:var(--mut)"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div id="landingTillDateHint" style="font-size:12px;color:var(--mut)"></div>
+          <span style="color:var(--dim)">|</span>
+          <div id="landingTillDateTotalEmp" style="font-size:12px;color:var(--mut)"></div>
+        </div>
       </div>
+      <div class="kpis-stack" id="landingTillDateCards"></div>
     </div>
-    <div class="kpis-2col" id="landingTillDateCards"></div>
   </div>
 </div>
 <div id="pageViews" style="display:none">
@@ -992,7 +999,7 @@ function renderTodayCards(){
   });
   wrap.style.display="";
   document.getElementById("todayHint").textContent = `${shortYearLabel(mSel)} · day ${todayDay}`;
-  document.getElementById("todayCards").innerHTML=[["Attended",attToday,"today","var(--ok)","var(--okbg)","calendar-check"],["Absent",absentToday,"today","var(--bad)","var(--badbg)","calendar-x"],["On Time",onTimeToday,"today","var(--acc)","rgba(91,140,255,.12)","clock"],["Late",lateToday,"today","var(--warn)","var(--warnbg)","bell"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
+  document.getElementById("todayCards").innerHTML=[["Attended",attToday,"today","var(--ok)","var(--okbg)","calendar-check"],["On Time",onTimeToday,"today","var(--acc)","rgba(91,140,255,.12)","clock"],["Late",lateToday,"today","var(--warn)","var(--warnbg)","bell"],["Absent",absentToday,"today","var(--bad)","var(--badbg)","calendar-x"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
   document.getElementById("todayTotalEmp").innerHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash${esc(landingHeadcountNote(mSel))}`;
 }
 // "Till date" cards shown on the collapsed PX Team-2026 landing view — current-progress
@@ -1027,8 +1034,9 @@ function renderLandingTillDate(){
     if(status==="Late") lateTillDate++; else onTimeTillDate++;
   });
   wrap.style.display="";
-  document.getElementById("landingTillDateHint").textContent = `${shortYearLabel(mSel)} — till date (through day ${todayDay}, ${wdTillDate} workdays so far)`;
-  document.getElementById("landingTillDateCards").innerHTML=[["Attended",attTillDate,"till date this month","var(--ok)","var(--okbg)","calendar-check"],["Absent",absentTillDate,"till date this month","var(--bad)","var(--badbg)","calendar-x"],["On Time",onTimeTillDate,"till date this month","var(--acc)","rgba(91,140,255,.12)","clock"],["Late",lateTillDate,"till date this month","var(--warn)","var(--warnbg)","bell"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
+  document.getElementById("landingTillDateDate").textContent = `${String(todayDay).padStart(2,"0")}-${String(monthIdx+1).padStart(2,"0")}-${realToday.getFullYear()}`;
+  document.getElementById("landingTillDateHint").textContent = `through day ${todayDay}, ${wdTillDate} workdays so far`;
+  document.getElementById("landingTillDateCards").innerHTML=[["Attended",attTillDate,"till date this month","var(--ok)","var(--okbg)","calendar-check"],["On Time",onTimeTillDate,"till date this month","var(--acc)","rgba(91,140,255,.12)","clock"],["Late",lateTillDate,"till date this month","var(--warn)","var(--warnbg)","bell"],["Absent",absentTillDate,"till date this month","var(--bad)","var(--badbg)","calendar-x"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
   document.getElementById("landingTillDateTotalEmp").innerHTML = `<b>${landingHeadcount(mSel)}</b> total employees · Exabyting Office, Exabyting Remote &amp; bKash${esc(landingHeadcountNote(mSel))}`;
 }
 function fmtDuration(h){ if(h==null) return "—"; const sec=Math.round(h*3600); const hh=String(Math.floor(sec/3600)).padStart(2,"0"); const mm=String(Math.floor((sec%3600)/60)).padStart(2,"0"); const ss=String(sec%60).padStart(2,"0"); return `${hh}:${mm}:${ss}`; }
