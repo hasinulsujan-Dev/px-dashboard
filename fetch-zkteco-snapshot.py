@@ -9,9 +9,10 @@ unchanged against this new data source.
 Field mapping (per explicit instruction): BioTime's "nickname" -> our "Perks" column.
 
 This is a periodic-snapshot fetcher, not a live sync: run it whenever you want to
-refresh the embedded data.js (e.g. monthly), then reload the dashboard. It only
-replaces the Attendance-derived keys (months/employees/daily/profiles) and leaves
-sailors/sailorCriteria/sailorManual (from the separate Sailor's Report sheet) untouched.
+refresh the embedded data.js (e.g. monthly), then reload the dashboard. data.js only
+ever holds the Attendance-derived keys (months/employees/daily/profiles) this script
+writes — Sailor's Report data lives entirely in the browser's localStorage (see the
+Data Editor page), not in data.js.
 
 Usage:
   python3 fetch-zkteco-snapshot.py
@@ -275,22 +276,12 @@ def main():
     for emp_code, p in emp_directory.items():
         profiles[p["id"]] = {"name": p["name"], "perks": p["perks"], "team": p["team"]}
 
-    print("[3/3] Merging into data.js (preserving sailors/sailorCriteria/sailorManual)...", flush=True)
-    with open(args.out) as f:
-        old_content = f.read()
-    old_json_str = old_content.split("=", 1)[1].strip()
-    if old_json_str.endswith(";"):
-        old_json_str = old_json_str[:-1]
-    old_data = json.loads(old_json_str)
-
+    print("[3/3] Writing data.js...", flush=True)
     new_data = {
         "months": months,
         "employees": all_employees,
-        "sailors": old_data.get("sailors", {}),
         "daily": all_daily,
         "profiles": profiles,
-        "sailorCriteria": old_data.get("sailorCriteria", []),
-        "sailorManual": old_data.get("sailorManual", {}),
     }
 
     with open(args.out, "w") as f:

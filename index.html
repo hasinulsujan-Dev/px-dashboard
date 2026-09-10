@@ -666,7 +666,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1789027846"></script>
+<script src="data.js?v=1789046326"></script>
 <script>
 
 /* ============ icon system — Feather-style inline SVGs, single stroke width/style
@@ -1279,19 +1279,6 @@ function renderSummary(){
 }
 
 
-function monthKey(m){ return m; }
-function dailyRowsFor(month){
-  const rows=(DATA.daily[month]||[]).map(d=>({emp:d[0],date:d[1],cin:d[2],cout:d[3],status:d[4]}));
-  return rows;
-}
-function attDailyFor(month){
-  // Build daily rows from live computed DATA.daily + supplements from MATRIX aggregates for avg cols
-  const daily=(DATA.daily[month]||[]).map(d=>({emp:d[0],date:d[1],cin:d[2],cout:d[3],status:d[4]}));
-  // index by emp+date for quick merge with computed rows (weekFlag/hours/early)
-  const idx={};
-  (DATA.daily[month]||[]); // placeholder keep
-  return daily;
-}
 function renderAtt(){
   const mSel = document.getElementById("attMonthSel").value || getPreviousMonthName();
   document.getElementById("attMonthLabel").textContent = shortYearLabel(mSel);
