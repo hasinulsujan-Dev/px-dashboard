@@ -25,6 +25,7 @@ in the project root by default (gitignored).
 import argparse
 import calendar
 import json
+import os
 import sys
 from datetime import date
 from urllib import request, parse
@@ -183,7 +184,7 @@ def build_month_data(year, month_num, transactions, emp_directory):
         eco = sum(1 for x in att_days if x["earlyOut"])
         hrs = [x["hours"] for x in att_days if x["hours"] is not None]
         avg = round(sum(hrs) / len(hrs), 2) if hrs else None
-        band = "" if avg is None else ("<9" if avg < 9 else ">9")
+        band = "" if avg is None else ("<9" if avg < 9 else ">9" if avg > 9 else "")
 
         employees_agg.append({
             "id": emp_id, "name": profile["name"], "perks": profile["perks"],
@@ -193,6 +194,16 @@ def build_month_data(year, month_num, transactions, emp_directory):
 
     employees_agg.sort(key=lambda e: e["name"])
     return daily_rows, employees_agg
+
+
+def write_data_js(out_path, data):
+    """Write data.js atomically (temp file + os.replace) so a crash/kill mid-write can't
+    leave the live file truncated — this is invoked from a live HTTP handler
+    (serve.py's /api/sync-now), not just offline runs, so that risk is real."""
+    tmp_path = out_path + ".tmp"
+    with open(tmp_path, "w") as f:
+        f.write("const DATA = " + json.dumps(data, separators=(",", ":")) + ";\n")
+    os.replace(tmp_path, out_path)
 
 
 def sync_current_month(env_path=".env", out_path="data.js", today=None, log=lambda *a: None):
@@ -233,8 +244,7 @@ def sync_current_month(env_path=".env", out_path="data.js", today=None, log=lamb
     data.setdefault("daily", {})[month_name] = daily_rows
     data["profiles"] = profiles
 
-    with open(out_path, "w") as f:
-        f.write("const DATA = " + json.dumps(data, separators=(",", ":")) + ";\n")
+    write_data_js(out_path, data)
 
     bump_data_js_cache_version()
     return month_name, len(employees_agg)
@@ -284,8 +294,7 @@ def main():
         "profiles": profiles,
     }
 
-    with open(args.out, "w") as f:
-        f.write("const DATA = " + json.dumps(new_data, separators=(",", ":")) + ";\n")
+    write_data_js(args.out, new_data)
 
     bump_data_js_cache_version()
 

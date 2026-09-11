@@ -33,6 +33,24 @@ spec.loader.exec_module(zkteco_snapshot)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self._is_blocked():
+            self.send_error(404)
+            return
+        super().do_GET()
+
+    def do_HEAD(self):
+        if self._is_blocked():
+            self.send_error(404)
+            return
+        super().do_HEAD()
+
+    def _is_blocked(self):
+        # Never serve dotfiles (e.g. .env, which holds BIOTIME_PASSWORD in cleartext) —
+        # SimpleHTTPRequestHandler has no such filter on its own.
+        path = self.path.split("?", 1)[0].split("#", 1)[0]
+        return any(part.startswith(".") for part in path.split("/") if part)
+
     def do_POST(self):
         if self.path == "/api/sync-now":
             self._sync_now()
@@ -58,7 +76,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 def main():
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8934
     handler = functools.partial(Handler, directory=str(ROOT))
-    with http.server.ThreadingHTTPServer(("", port), handler) as httpd:
+    # Loopback-only: this is a local dev server holding BioTime credentials server-side
+    # (see .env) — it has no business being reachable from other machines on the LAN.
+    with http.server.ThreadingHTTPServer(("127.0.0.1", port), handler) as httpd:
         print(f"Serving {ROOT} on port {port} (POST /api/sync-now for live ZKTeco refresh)")
         httpd.serve_forever()
 

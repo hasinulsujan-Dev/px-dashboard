@@ -905,7 +905,7 @@ function computeEmployeeAgg(emp, month){
     if(cout!=null && cout<19*60) eco++;
   });
   const avg = hours.length ? Math.round((hours.reduce((a,b)=>a+b,0)/hours.length)*100)/100 : null;
-  const band = avg==null ? "" : (avg<9 ? "<9" : ">9");
+  const band = avg==null ? "" : (avg<9 ? "<9" : avg>9 ? ">9" : "");
   return {wd, att, absent:wd-att, late, b8, eco, avg, band};
 }
 function effRow(emp, month){
@@ -922,6 +922,10 @@ function effRow(emp, month){
   const base = isDuplicateId ? {...staticRow} : {...staticRow, ...computeEmployeeAgg(emp, month)};
   const o = OVR.att?.[emp+"@"+month];
   if(o) Object.assign(base, o);
+  // A manual correction can only ever edit `att` (see saveEmp's patch fields), never `absent`
+  // directly — recompute it from the (possibly overridden) att so it doesn't go stale relative
+  // to wd, which is never editable.
+  if(base.wd!=null && base.att!=null) base.absent = Math.max(0, base.wd - base.att);
   return base;
 }
 function effRows(month){
@@ -1477,12 +1481,12 @@ function saveEmp(id, month){
   const g=k=>{const v=$("#ed_"+k).value.trim();return v===""?null:Number(v);};
   const patch={};
   ["att","late","b8","eco"].forEach(k=>{const v=g(k); if(v!=null&&!Number.isNaN(v)&&v>=0)patch[k]=v;});
-  const av=g("avg"); if(av!=null&&!Number.isNaN(av)&&av>=0){patch.avg=av; patch.band=av<9?"<9":">9";}
+  const av=g("avg"); if(av!=null&&!Number.isNaN(av)&&av>=0){patch.avg=av; patch.band=av<9?"<9":av>9?">9":"";}
   if(!Object.keys(patch).length){toast("Nothing to save");return;}
   OVR.att[id+"@"+month]={...(OVR.att[id+"@"+month]||{}),...patch};
-  save(); renderAtt(); openEmp(id,month); toast("Saved manual correction");
+  save(); refreshMatrix(); renderAtt(); openEmp(id,month); toast("Saved manual correction");
 }
-function clearEmp(id,month){ delete OVR.att[id+"@"+month]; save(); renderAtt(); openEmp(id,month); toast("Reverted to sheet values"); }
+function clearEmp(id,month){ delete OVR.att[id+"@"+month]; save(); refreshMatrix(); renderAtt(); openEmp(id,month); toast("Reverted to sheet values"); }
 
 /* ============ overrides log ============ */
 function renderOvrLog(){
