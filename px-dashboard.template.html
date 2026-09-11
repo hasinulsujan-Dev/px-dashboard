@@ -148,6 +148,8 @@ tbody tr{transition:background .12s;cursor:pointer}
 tbody tr:hover{background:color-mix(in srgb,var(--card2) 70%,transparent)}
 #attTbl tbody tr{cursor:default}
 #attTbl tbody tr:hover{background:none}
+#attTbl tbody tr.row-click{cursor:pointer}
+#attTbl tbody tr.row-click:hover{background:color-mix(in srgb,var(--card2) 70%,transparent)}
 .emp-cell{display:flex;align-items:center;gap:10px}
 .avat{width:30px;height:30px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0}
 .emp-cell .nm{font-weight:600}
@@ -1262,8 +1264,7 @@ function renderSummary(){
     const isSel = activeSummaryId===id;
     const sel = isSel ? ' style="background:var(--card2)"' : "";
     const rowBg = isSel ? "var(--card2)" : "var(--card)";
-    const escId = id.replace(/'/g,"\'");
-    return `<tr${sel} onclick="activeSummaryId='${escId}'; renderSummary(); openEmp('${escId}','${mSel}');">
+    return `<tr${sel} onclick="activeSummaryId='${esc(id)}'; renderSummary(); openEmp('${esc(id)}','${mSel}');">
       <td class="stick-l" style="left:0;background:${rowBg}">${esc(p?.name||id)}</td>
       <td class="stick-l" style="left:170px;background:${rowBg}">${esc(r.team||p?.team||"—")}</td>
       <td style="text-align:right">${r.wd}</td>
@@ -1379,8 +1380,12 @@ function renderAtt(){
   $("#kpis").innerHTML=[["Attendance",uniqueAtt,"unique attendees in month","var(--warn)","var(--warnbg)","clock"],["Weekdays",wdCount,wdSub,"var(--ok)","var(--okbg)","calendar-check"],["Total Employees",`${rosterCount}`,"unique roster head count (ex Support Staff)","var(--acc)","rgba(91,140,255,.12)","users"]].map(([l,v,s,c,b,i])=>`<div class="kpi" style="--kc:${c};--kb:${b}"><span class="lbl">${l}</span><span class="val">${v}</span><span class="sub">${s}</span><span class="icn">${icon(i,16)}</span></div>`).join("");
   $("#tblHint").textContent = distinct + " employees · " + rows.length + " rows · " + shortYearLabel(mSel);
   if(!rows.length){ tb.innerHTML=`<tr><td colspan="14" class="empty-state">No rows for ${mSel} with current filters</td></tr>`; return; }
-  tb.innerHTML = rows.map(r=>`
-    <tr>
+  tb.innerHTML = rows.map(r=>{
+    // Support Staff rows are excluded from Summary (isExcludedTeam), so they have no
+    // other path to the detail modal / manual-correction buttons — keep those clickable.
+    const clickable = isExcludedTeam(r.team||"");
+    return `
+    <tr${clickable?` class="row-click" onclick="openEmp('${esc(r.emp)}','${mSel}')"`:""}>
       <td class="stick-l" style="left:0">${esc(r.emp)}</td>
       <td class="stick-l" style="left:110px"><div class="emp-cell"><span class="avat">${esc(initials(r.name))}</span><div><div class="nm">${esc(r.name)}</div></div></div></td>
       <td><span class="badge b-mut">${esc(r.perks||"—")}</span></td>
@@ -1395,7 +1400,8 @@ function renderAtt(){
       <td>${esc(r.avgLess8)}</td>
       <td>${esc(r.avgLess9)}</td>
       <td>${esc(r.avgMore9)}</td>
-    </tr>`).join("");
+    </tr>`;
+  }).join("");
 }
 
 /* ============ employee modal ============ */
