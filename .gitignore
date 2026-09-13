@@ -6,3 +6,4 @@ Desktop.ini
 *.bak
 .sass-cache/
 .env
+current-teams.csv

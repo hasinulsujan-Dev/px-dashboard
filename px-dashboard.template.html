@@ -150,6 +150,8 @@ tbody tr:hover{background:color-mix(in srgb,var(--card2) 70%,transparent)}
 #attTbl tbody tr:hover{background:none}
 #attTbl tbody tr.row-click{cursor:pointer}
 #attTbl tbody tr.row-click:hover{background:color-mix(in srgb,var(--card2) 70%,transparent)}
+#tsRosterTbl tbody tr{cursor:default}
+#tsRosterTbl tbody tr:hover{background:none}
 .emp-cell{display:flex;align-items:center;gap:10px}
 .avat{width:30px;height:30px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0}
 .emp-cell .nm{font-weight:600}
@@ -338,6 +340,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
         <div class="side-group-sub" id="dataEditorSub">
           <button class="side-tab" data-v="db">Sailor's Raw— Manual Entries <span class="cnt" id="ovrCount">0</span></button>
           <button class="side-tab" data-v="holidays">Holidays</button>
+          <button class="side-tab" data-v="teamswitch">Team Switch</button>
         </div>
       </div>
       <div class="side-group" id="stakeholdersGroup">
@@ -543,6 +546,42 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   </div>
 </section>
 
+<!-- ================= TEAM SWITCH ================= -->
+<section class="view" id="view-teamswitch">
+  <div class="page-head"><h2>Team Switch</h2><p>BioTime only ever reports each employee's <i>current</i> department, with no history — record a transfer here (employee, and the month it took effect) so earlier months keep showing their old team and that month onward shows the new one, everywhere the dashboard uses team (Summary, Monthly Attendance, Sailor's Report). A transfer applies from its month forward until a later transfer for the same employee takes over.</p></div>
+  <div class="panel" style="margin-bottom:18px">
+    <div class="panel-h">
+      <h3>Record a transfer</h3>
+      <span class="hint">stored locally, same as other manual entries</span>
+    </div>
+    <div style="padding:20px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:220px"><label style="display:block;font-size:11px;color:var(--mut);margin-bottom:4px">Employee</label><input type="text" id="tsName" list="employeeNamesDatalist" placeholder="Start typing a name…" style="width:100%" autocomplete="off"></div>
+      <div><label style="display:block;font-size:11px;color:var(--mut);margin-bottom:4px">Effective from</label><select id="tsMonth" style="width:150px"></select></div>
+      <div style="flex:1;min-width:180px"><label style="display:block;font-size:11px;color:var(--mut);margin-bottom:4px">New team</label><input type="text" id="tsTeam" placeholder="e.g. bKash" style="width:100%"></div>
+      <button class="btn pri" onclick="addTeamSwitchFromForm()" style="height:36px"><span data-icon="plus"></span> Add</button>
+    </div>
+  </div>
+  <div class="panel" style="margin-bottom:18px">
+    <div class="panel-h">
+      <h3>Recorded transfers</h3>
+      <span class="hint">grouped by employee, oldest first — each employee's current (latest-synced) team is shown for reference</span>
+    </div>
+    <div id="teamSwitchList" style="padding:20px;display:flex;flex-direction:column;gap:14px"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-h">
+      <h3>All employees — current team</h3>
+      <span class="hint">from the latest sync · reference only, not editable here</span>
+      <div class="spacer"></div>
+      <input type="text" id="tsRosterFilter" placeholder="Filter by name or ID…" oninput="renderTeamSwitchRoster()" style="width:200px;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--card2);padding:0 10px;color:var(--txt)">
+    </div>
+    <div class="tblwrap" style="max-height:360px"><table id="tsRosterTbl">
+      <thead><tr><th>Name</th><th>Employee ID</th><th>Current Team</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+</section>
+
 <!-- ================= PX REPORT (Reports menu) ================= -->
 <section class="view" id="view-pxreport">
   <div class="page-head"><h2>PX Report</h2><p>Coming soon — this report will be designed later.</p></div>
@@ -705,6 +744,7 @@ const dashLabel = "PX Team Dashboard-" + YEAR;
 const LS_KEY = "pxdash-overrides-v1";
 let OVR = load();
 if(!Array.isArray(OVR.holidays)) OVR.holidays = []; // upgrade path for OVR saved before Holidays existed
+if(!OVR.teamHistory || typeof OVR.teamHistory!=="object") OVR.teamHistory = {}; // upgrade path for OVR saved before Team Switch existed
 function load(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||{att:{},sail:{},holidays:[]}}catch(e){return{att:{},sail:{},holidays:[]}} }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(OVR)); document.getElementById("ovrCount").textContent = ovrTotal(); }
 function ovrTotal(){
@@ -908,6 +948,22 @@ function computeEmployeeAgg(emp, month){
   const band = avg==null ? "" : (avg<9 ? "<9" : avg>9 ? ">9" : "");
   return {wd, att, absent:wd-att, late, b8, eco, avg, band};
 }
+// Team Switch: a per-employee timeline of {month, team} entries — "starting this month, their
+// team is this" — that stays in effect until a later entry in the same timeline takes over.
+// This exists because BioTime's employee directory (fetch-zkteco-snapshot.py) only ever
+// reports each person's CURRENT department, with no historical dimension, so a transfer can
+// only be captured by hand; see the Team Switch page (Data Editor group).
+function resolveTeamHistory(id, month, fallback){
+  const hist = OVR.teamHistory?.[id];
+  if(!hist || !hist.length) return fallback;
+  const mi = ALL_MONTHS.indexOf(month);
+  let best=null, bestIdx=-1;
+  for(const h of hist){
+    const hi = ALL_MONTHS.indexOf(h.month);
+    if(hi<=mi && hi>bestIdx){ bestIdx=hi; best=h.team; }
+  }
+  return bestIdx>=0 ? best : fallback;
+}
 function effRow(emp, month){
   const empList = DATA.employees[month];
   const staticRow = empList.find(e=>e.id===emp) || {};
@@ -926,6 +982,9 @@ function effRow(emp, month){
   // directly — recompute it from the (possibly overridden) att so it doesn't go stale relative
   // to wd, which is never editable.
   if(base.wd!=null && base.att!=null) base.absent = Math.max(0, base.wd - base.att);
+  // A one-off "Team (this month)" correction (o.team) is more specific than the Team Switch
+  // timeline, so it wins for that exact month if both exist; otherwise let the timeline resolve.
+  if(!o?.team) base.team = resolveTeamHistory(emp, month, base.team);
   return base;
 }
 function effRows(month){
@@ -1502,8 +1561,8 @@ function renderOvrLog(){
   // (#ovrCount) is still kept in sync by save(), so this is a no-op now.
 }
 function resetOverrides(){
-  if(!confirm("Remove ALL manual edits and restore sheet values? (Holidays are managed separately and are not affected.)"))return;
-  OVR={att:{},sail:{},sailorCriteria:null,sailorManualEntries:{},holidays:OVR.holidays||[]}; save(); refreshMatrix(); renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderOvrLog(); toast("All manual edits cleared");
+  if(!confirm("Remove ALL manual edits and restore sheet values? (Holidays and Team Switch history are managed separately and are not affected.)"))return;
+  OVR={att:{},sail:{},sailorCriteria:null,sailorManualEntries:{},holidays:OVR.holidays||[],teamHistory:OVR.teamHistory||{}}; save(); refreshMatrix(); renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderOvrLog(); renderTeamSwitch(); toast("All manual edits cleared");
 }
 
 /* ============ export ============ */
@@ -2170,6 +2229,81 @@ function renderHolidays(){
   }).join("");
 }
 
+/* ============ Team Switch ============ */
+function findEmployeeIdByName(name){
+  const target = name.trim().toLowerCase();
+  for(const [id, p] of MATRIX.roster.entries()){
+    if((p.name||"").trim().toLowerCase()===target) return id;
+  }
+  return null;
+}
+function refreshAfterTeamSwitchChange(){
+  refreshMatrix(); renderAtt(); renderSailorCriteria(); renderSailorReport(); renderTeamSwitch();
+}
+function addTeamSwitchFromForm(){
+  const nameInput=document.getElementById("tsName"), monthSel=document.getElementById("tsMonth"), teamInput=document.getElementById("tsTeam");
+  const name=nameInput.value.trim(), team=teamInput.value.trim(), month=monthSel.value;
+  if(!name){ toast("Pick an employee first"); return; }
+  if(!team){ toast("Enter the new team"); return; }
+  const id=findEmployeeIdByName(name);
+  if(!id){ toast("No employee found with that name — pick one from the list"); return; }
+  OVR.teamHistory[id]=OVR.teamHistory[id]||[];
+  const existingIdx=OVR.teamHistory[id].findIndex(h=>h.month===month);
+  if(existingIdx>=0) OVR.teamHistory[id][existingIdx]={month,team};
+  else OVR.teamHistory[id].push({month,team});
+  save();
+  nameInput.value=""; teamInput.value="";
+  refreshAfterTeamSwitchChange();
+  toast("Transfer recorded");
+}
+function removeTeamSwitch(id, idx){
+  OVR.teamHistory[id].splice(idx,1);
+  if(!OVR.teamHistory[id].length) delete OVR.teamHistory[id];
+  save();
+  refreshAfterTeamSwitchChange();
+  toast("Transfer removed");
+}
+function renderTeamSwitch(){
+  const monthSel=document.getElementById("tsMonth");
+  if(monthSel && !monthSel.options.length) monthSel.innerHTML = ALL_MONTHS.map(m=>`<option value="${m}">${shortYearLabel(m)}</option>`).join("");
+  const list=document.getElementById("teamSwitchList");
+  if(list){
+    const entries=Object.entries(OVR.teamHistory||{});
+    if(!entries.length){
+      list.innerHTML = `<div class="empty-state" style="padding:20px">No transfers recorded yet — every employee's team is read from the latest sync for every month.</div>`;
+    } else {
+      list.innerHTML = entries.map(([id,hist])=>{
+        const name = MATRIX.roster.get(id)?.name || id;
+        const currentTeam = DATA.profiles?.[id]?.team || MATRIX.roster.get(id)?.team || "—";
+        const sorted=[...hist].sort((a,b)=>ALL_MONTHS.indexOf(a.month)-ALL_MONTHS.indexOf(b.month));
+        const rows=sorted.map(h=>{
+          const trueIdx=OVR.teamHistory[id].indexOf(h);
+          return `<span class="badge b-mut" style="display:inline-flex;align-items:center;gap:6px">${esc(shortYearLabel(h.month))} → ${esc(h.team)}<button title="remove" onclick="removeTeamSwitch('${esc(id)}',${trueIdx})" style="border:none;background:none;color:var(--mut);cursor:pointer;font-size:13px;line-height:1;padding:0">×</button></span>`;
+        }).join("");
+        return `<div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+            <b>${esc(name)}</b>
+            <span class="hint">current: ${esc(currentTeam)}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">${rows}</div>
+        </div>`;
+      }).join("");
+    }
+  }
+  renderTeamSwitchRoster();
+}
+function renderTeamSwitchRoster(){
+  const tb=document.querySelector("#tsRosterTbl tbody");
+  if(!tb) return;
+  const q=(document.getElementById("tsRosterFilter")?.value||"").trim().toLowerCase();
+  const rows=Object.entries(DATA.profiles||{})
+    .map(([id,p])=>({id, name:p.name||MATRIX.roster.get(id)?.name||id, team:p.team||MATRIX.roster.get(id)?.team||"—"}))
+    .filter(r=>!q || r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q))
+    .sort((a,b)=>a.name.localeCompare(b.name));
+  if(!rows.length){ tb.innerHTML = `<tr><td colspan="3" class="empty-state">No employees match "${esc(q)}"</td></tr>`; return; }
+  tb.innerHTML = rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.id)}</td><td>${esc(r.team)}</td></tr>`).join("");
+}
+
 
 /* ============ boot ============ */
 /* Keeps --header-h (the sidebar's sticky top offset / height calc) equal to header.top's
@@ -2201,7 +2335,7 @@ if(document.fonts?.ready) document.fonts.ready.then(syncHeaderHeight);
     const attSel2027=document.getElementById("attMonthSel"); if(attSel2027) attSel2027.value=getPreviousMonthName();
     const lh2027=document.getElementById("landingHome"); if(lh2027) lh2027.style.display="none";
     const pv2027=document.getElementById("pageViews"); if(pv2027) pv2027.style.display="";
-    renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderHolidays(); renderOvrLog(); save();
+    renderAtt(); renderSailorCriteria(); renderSailorReport(); renderManualEntryEditor(); renderHolidays(); renderTeamSwitch(); renderOvrLog(); save();
     return;
   }
   populateMonthSelect();
@@ -2210,6 +2344,7 @@ if(document.fonts?.ready) document.fonts.ready.then(syncHeaderHeight);
   refreshMatrix(); renderAtt();
   renderSailorCriteria(); renderSailorReport();  renderManualEntryEditor();
   renderHolidays();
+  renderTeamSwitch();
   renderOvrLog();
   renderTodayCards();
   renderLandingTillDate();
