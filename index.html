@@ -160,6 +160,17 @@ tbody tr:hover{background:color-mix(in srgb,var(--card2) 70%,transparent)}
 .b-ok{background:var(--okbg);color:var(--ok)} .b-warn{background:var(--warnbg);color:var(--warn)}
 .b-bad{background:var(--badbg);color:var(--bad)} .b-info{background:var(--infobg);color:var(--info)}
 .b-mut{background:var(--card2);color:var(--mut);border:1px solid var(--line)}
+.badge-tip-trigger{cursor:default}
+/* position:fixed + appended directly under <body> (see the #railFlyout comment near its markup
+   for the same lesson) — a table's scrollable .tblwrap implicitly clips overflow-y too (the
+   same visible/auto-promotion rule noted in the overflow-x gotcha above), so a tooltip nested
+   inside the table and positioned with plain CSS gets silently clipped whenever the badge is
+   near the top or bottom of the scrolled area. Positioned/shown via JS instead (showBadgeTip). */
+.badge-tip-fixed{display:none;position:fixed;z-index:200;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:150px;max-width:240px;white-space:normal;font-size:11px;font-weight:400;color:var(--txt);text-align:left}
+.badge-tip-fixed.on{display:block}
+.badge-tip-fixed .tip-t{font-weight:700;margin-bottom:5px;color:var(--mut);text-transform:uppercase;font-size:9px;letter-spacing:.4px}
+.badge-tip-fixed .tip-row{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
+.badge-tip-fixed .tip-row+.tip-row{border-top:1px solid var(--line)}
 .num-good{color:var(--ok);font-weight:650}.num-bad{color:var(--bad);font-weight:650}.num-warn{color:var(--warn);font-weight:650}
 .dot-edited{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle}
 .mini-bar{display:inline-flex;align-items:flex-end;gap:2px;height:16px;margin-left:8px;vertical-align:middle}
@@ -706,6 +717,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <div class="modal" id="modalBox"></div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="badge-tip-fixed" id="badgeTip"></div>
 
 <script src="data.js?v=1789266419"></script>
 <script>
@@ -924,6 +936,10 @@ function computeEmployeeAgg(emp, month){
   const yearNum = +YEAR;
   let wd=0, att=0, late=0, b8=0, eco=0;
   const hours=[];
+  // Per-day detail behind each count, for the Sailor's Report hover tooltips (which day(s)
+  // actually made up a "Late"/"<8h"/"Early out" count) — collected in the same single pass
+  // that already computes the counts, so there's no second source of truth to drift out of sync.
+  const lateDays=[], b8Days=[], ecoDays=[];
   (DATA.daily[month]||[]).forEach(d=>{
     if(d[0]!==emp) return;
     const dateStr=d[1], cin=d[2], cout=d[3], status=d[4];
@@ -935,18 +951,18 @@ function computeEmployeeAgg(emp, month){
     wd++;
     if(status==="Absent") return;
     att++;
-    if(status==="Late") late++;
+    if(status==="Late"){ late++; lateDays.push({date:dateStr, cin}); }
     if(cin!=null && cout!=null){
       let m2=cout-cin; if(m2<0) m2+=1440;
       const h=m2/60; // keep unrounded — averaging pre-rounded per-day hours drifts from the
       hours.push(h); // Python snapshot's average-then-round, off by 0.01 on some employees
-      if(h<8) b8++;
+      if(h<8){ b8++; b8Days.push({date:dateStr, hours:h}); }
     }
-    if(cout!=null && cout<19*60) eco++;
+    if(cout!=null && cout<19*60){ eco++; ecoDays.push({date:dateStr, cout}); }
   });
   const avg = hours.length ? Math.round((hours.reduce((a,b)=>a+b,0)/hours.length)*100)/100 : null;
   const band = avg==null ? "" : (avg<9 ? "<9" : avg>9 ? ">9" : "");
-  return {wd, att, absent:wd-att, late, b8, eco, avg, band};
+  return {wd, att, absent:wd-att, late, b8, eco, avg, band, lateDays, b8Days, ecoDays};
 }
 // Team Switch: a per-employee timeline of {month, team} entries — "starting this month, their
 // team is this" — that stays in effect until a later entry in the same timeline takes over.
@@ -1682,7 +1698,7 @@ function computeOnsiteThresholdCriterion(month, field, threshold, opts={}){
     const v = r[field];
     if(v==null || v<=threshold) continue;
     const name = r.name || MATRIX.roster.get(id)?.name || id;
-    out.push({name, days:v});
+    out.push({name, days:v, detail:r[field+"Days"]||[]});
   }
   out.sort((a,b)=> b.days-a.days || a.name.localeCompare(b.name));
   return out;
@@ -1706,9 +1722,9 @@ function computeAvgHoursCriterion(month, mode, opts={}){
   return out;
 }
 const SAILOR_COMPUTED = {
-  late: month => computeOnsiteThresholdCriterion(month, "late", 3, {excludeBkash:true}).map(e=>({name:e.name, value:String(e.days)})),
-  partial: month => computeOnsiteThresholdCriterion(month, "b8", 3, {excludeBkash:true}).map(e=>({name:e.name, value:String(e.days)})),
-  early: month => computeOnsiteThresholdCriterion(month, "eco", 3, {excludeBkash:true}).map(e=>({name:e.name, value:String(e.days)})),
+  late: month => computeOnsiteThresholdCriterion(month, "late", 3, {excludeBkash:true}).map(e=>({name:e.name, value:String(e.days), detail:e.detail})),
+  partial: month => computeOnsiteThresholdCriterion(month, "b8", 3, {excludeBkash:true}).map(e=>({name:e.name, value:String(e.days), detail:e.detail})),
+  early: month => computeOnsiteThresholdCriterion(month, "eco", 3, {excludeBkash:true}).map(e=>({name:e.name, value:String(e.days), detail:e.detail})),
   avg_lt9: month => computeAvgHoursCriterion(month, "lt9", {excludeBkash:true}),
   avg_gt9: month => computeAvgHoursCriterion(month, "gt9", {excludeBkash:true}),
 };
@@ -1766,6 +1782,40 @@ function onSailorReportMonthChange(){
   sailorReportMonth = document.getElementById("sailorReportMonthSel").value;
   renderSailorReport();
 }
+// Hover detail behind a criterion badge — the specific day(s) that made up the count, for the
+// three day-level auto-criteria (late/partial/early); other criteria (avg, manual entries)
+// have no per-day breakdown so just render as a plain badge.
+const CRITERION_DETAIL_LABEL = {late:"Late check-ins", partial:"Partial attendance (<8h)", early:"Early check-outs"};
+function criterionDetailRow(key, d){
+  if(key==="late") return `<div class="tip-row"><span>${esc(d.date)}</span><span>${esc(fmtClock(d.cin))}</span></div>`;
+  if(key==="partial") return `<div class="tip-row"><span>${esc(d.date)}</span><span>${d.hours.toFixed(2)}h</span></div>`;
+  if(key==="early") return `<div class="tip-row"><span>${esc(d.date)}</span><span>${esc(fmtClock(d.cout))}</span></div>`;
+  return "";
+}
+function buildCriterionBadge(key, e){
+  const label = CRITERION_DETAIL_LABEL[key];
+  if(!label || !e.detail || !e.detail.length){
+    return `<span class="badge b-mut">${esc(e.name)} — ${esc(e.value)}</span>`;
+  }
+  const rows = e.detail.map(d=>criterionDetailRow(key,d)).join("");
+  const tipHtml = `<span class="tip-t">${esc(label)}</span>${rows}`;
+  return `<span class="badge b-mut badge-tip-trigger" onmouseenter="showBadgeTip(this)" onmouseleave="hideBadgeTip()" data-tip="${esc(tipHtml)}">${esc(e.name)} — ${esc(e.value)}</span>`;
+}
+function showBadgeTip(el){
+  const tip=document.getElementById("badgeTip");
+  if(!tip) return;
+  tip.innerHTML = el.dataset.tip;
+  tip.classList.add("on");
+  const r = el.getBoundingClientRect();
+  const tr = tip.getBoundingClientRect();
+  let top = r.top - tr.height - 6;
+  if(top < 4) top = r.bottom + 6; // not enough room above — show below instead
+  let left = Math.min(r.left, window.innerWidth - tr.width - 8);
+  left = Math.max(8, left);
+  tip.style.top = top + "px";
+  tip.style.left = left + "px";
+}
+function hideBadgeTip(){ document.getElementById("badgeTip")?.classList.remove("on"); }
 function renderSailorReport(){
   const sel=document.getElementById("sailorReportMonthSel");
   if(sel){
@@ -1782,7 +1832,7 @@ function renderSailorReport(){
   tbody.innerHTML = criteria.map(c=>{
     const entries = getCriterionValues(sailorReportMonth, c.key);
     const list = entries.length
-      ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${entries.map(e=>`<span class="badge b-mut">${esc(e.name)} — ${esc(e.value)}</span>`).join("")}</div>`
+      ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${entries.map(e=>buildCriterionBadge(c.key,e)).join("")}</div>`
       : `<span class="none-txt">No entries for ${esc(shortYearLabel(sailorReportMonth))}.</span>`;
     return `<tr><td>${c.no}</td><td>${esc(c.criteria)}</td><td>${list}</td></tr>`;
   }).join("");
