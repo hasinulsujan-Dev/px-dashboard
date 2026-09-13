@@ -648,7 +648,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     </div>
     <div id="recentRepeatBody" style="display:none;padding:16px">
       <div id="recentRepeatCards" style="display:flex;flex-direction:column;gap:16px"></div>
-      <div id="recentRepeatEmpty" class="empty-state" style="padding:16px 20px;text-align:left">No one has been flagged in 2 or more of the last 3 months.</div>
+      <div id="recentRepeatEmpty" class="empty-state" style="padding:16px 20px;text-align:left">No one has been flagged on the same criterion in all 3 of the last 3 months.</div>
     </div>
   </div>
   <div class="landing-2col" id="srAccordionGrid" style="margin-bottom:16px">
@@ -1965,6 +1965,33 @@ function computeSailorRepeats(criteria, months, minMonths=2){
     .map(([name,p])=>({name, monthCount:p.monthsSet.size, byCriterion:[...p.byCriterion.entries()]}))
     .sort((a,b)=> b.monthCount-a.monthCount || a.name.localeCompare(b.name));
 }
+// Stricter than computeSailorRepeats: that one counts a person as "repeated" if the UNION of
+// months they show up in (across ANY mix of criteria) reaches minMonths — so someone flagged
+// for Partial Attendance once and Early Check Out twice (different months) could still qualify
+// even though neither criterion alone was ever repeated. This one only keeps a (person,
+// criterion) pair that was flagged in EVERY one of the given months for that SAME criterion —
+// used by Repeated Flags, where "repeated" means one specific criterion hit 3-for-3, not a mix.
+function computeFullWindowRepeats(criteria, months){
+  if(!months.length) return [];
+  const byPerson = new Map(); // name -> Map(criteriaLabel -> [{month,value}])
+  criteria.forEach(c=>{
+    const perName = new Map(); // name -> [{month,value}] this criterion, across the window
+    months.forEach(m=>{
+      getCriterionValues(m, c.key).forEach(e=>{
+        if(!perName.has(e.name)) perName.set(e.name, []);
+        perName.get(e.name).push({month:m, value:e.value});
+      });
+    });
+    perName.forEach((entries,name)=>{
+      if(entries.length!==months.length) return; // not flagged in every month — doesn't count
+      if(!byPerson.has(name)) byPerson.set(name, new Map());
+      byPerson.get(name).set(c.criteria, entries);
+    });
+  });
+  return [...byPerson.entries()]
+    .map(([name,byCrit])=>({name, monthCount:months.length, byCriterion:[...byCrit.entries()]}))
+    .sort((a,b)=> a.name.localeCompare(b.name));
+}
 function buildRepeatCardHTML(p){
   return `
     <div data-name="${esc(p.name)}" style="border:1px solid var(--line);border-radius:14px;padding:20px;background:var(--card2)">
@@ -2005,8 +2032,8 @@ function renderRecentRepeatFlags(){
     const mi = curIdx-i;
     if(mi>=0 && DATA.months.includes(ALL_MONTHS[mi])) months.push(ALL_MONTHS[mi]);
   }
-  if(hintEl) hintEl.textContent = months.length ? `${months.map(shortYearLabel).join(", ")} · flagged in 2 or more of these months, any criteria` : "";
-  const repeats = computeSailorRepeats(getSailorCriteriaList(), months, 2);
+  if(hintEl) hintEl.textContent = months.length ? `${months.map(shortYearLabel).join(", ")} · flagged on the same criterion in every one of these months` : "";
+  const repeats = computeFullWindowRepeats(getSailorCriteriaList(), months);
   if(countEl){ countEl.style.display = repeats.length ? "" : "none"; countEl.textContent = String(repeats.length); }
   if(!repeats.length){
     wrap.innerHTML = "";
