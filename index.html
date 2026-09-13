@@ -637,6 +637,19 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
       </div>
     </div>
   </div>
+  <div class="panel" id="srRecentRepeatPanel" style="margin-bottom:16px">
+    <div class="panel-h">
+      <h3 style="white-space:nowrap;display:flex;align-items:center;gap:10px">
+        <span>Repeated Flags — Last 3 Months</span>
+        <span class="badge b-info" id="recentRepeatCount" style="display:none">0</span>
+      </h3>
+      <span class="hint" id="recentRepeatMonthsHint"></span>
+    </div>
+    <div style="padding:16px">
+      <div id="recentRepeatCards" style="display:flex;flex-direction:column;gap:16px"></div>
+      <div id="recentRepeatEmpty" class="empty-state" style="padding:16px 20px;text-align:left">No one has been flagged in 2 or more of the last 3 months.</div>
+    </div>
+  </div>
   <div class="landing-2col" id="srAccordionGrid" style="margin-bottom:16px">
   <div class="panel" id="srFlaggedPanel">
     <div class="panel-h" style="flex-direction:column;align-items:stretch;gap:10px">
@@ -719,7 +732,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <div class="toast" id="toast"></div>
 <div class="badge-tip-fixed" id="badgeTip"></div>
 
-<script src="data.js?v=1789285352"></script>
+<script src="data.js?v=1789298155"></script>
 <script>
 
 /* ============ icon system — Feather-style inline SVGs, single stroke width/style
@@ -1835,6 +1848,7 @@ document.addEventListener("click", e=>{
   hideBadgeTip(); badgeTipPinnedEl=null;
 });
 function renderSailorReport(){
+  renderRecentRepeatFlags();
   const sel=document.getElementById("sailorReportMonthSel");
   if(sel){
     if(!sel.options.length) sel.innerHTML = ALL_MONTHS.map(m=>`<option value="${m}">${shortYearLabel(m)}</option>`).join("");
@@ -1962,6 +1976,29 @@ function buildRepeatCardHTML(p){
           </div>`).join("")}
       </div>
     </div>`;
+}
+/* ---- Repeated Flags — Last 3 Months: a fixed, no-filter glance above Individual Flagged.
+   Reuses computeSailorRepeats()/buildRepeatCardHTML() so the repeat-counting logic and card
+   layout stay identical to Individual Flagged — only the month window is fixed instead of
+   user-selectable, and criteria are always "all" (Individual Flagged already covers picking
+   specific criteria/months for anyone who wants that). ---- */
+function renderRecentRepeatFlags(){
+  const wrap=document.getElementById("recentRepeatCards");
+  const empty=document.getElementById("recentRepeatEmpty");
+  const countEl=document.getElementById("recentRepeatCount");
+  const hintEl=document.getElementById("recentRepeatMonthsHint");
+  if(!wrap) return;
+  const months = DATA.months.slice(-3);
+  if(hintEl) hintEl.textContent = months.length ? `${months.map(shortYearLabel).join(", ")} · flagged in 2 or more of these months, any criteria` : "";
+  const repeats = computeSailorRepeats(getSailorCriteriaList(), months, 2);
+  if(countEl){ countEl.style.display = repeats.length ? "" : "none"; countEl.textContent = String(repeats.length); }
+  if(!repeats.length){
+    wrap.innerHTML = "";
+    if(empty) empty.style.display = "";
+    return;
+  }
+  if(empty) empty.style.display = "none";
+  wrap.innerHTML = repeats.map(buildRepeatCardHTML).join("");
 }
 /* ---- Individual Flagged: search by person / criteria / time frame (months) ---- */
 let indivCritSelection = new Set(); // empty = All criteria
