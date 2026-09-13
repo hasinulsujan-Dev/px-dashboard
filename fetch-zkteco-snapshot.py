@@ -206,6 +206,19 @@ def write_data_js(out_path, data):
     os.replace(tmp_path, out_path)
 
 
+def read_data_js(path):
+    """Parse an existing data.js's `const DATA = {...};` back into a dict, or None if the
+    file doesn't exist yet (first-ever run)."""
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        content = f.read()
+    json_str = content.split("=", 1)[1].strip()
+    if json_str.endswith(";"):
+        json_str = json_str[:-1]
+    return json.loads(json_str)
+
+
 def sync_current_month(env_path=".env", out_path="data.js", today=None, log=lambda *a: None):
     """Refetch just today's month from BioTime and merge it into the existing data.js,
     leaving every other month untouched. This is what the dashboard's "zkteco-api sync"
@@ -231,12 +244,14 @@ def sync_current_month(env_path=".env", out_path="data.js", today=None, log=lamb
     for emp_code, p in emp_directory.items():
         profiles[p["id"]] = {"name": p["name"], "perks": p["perks"], "team": p["team"]}
 
-    with open(out_path) as f:
-        old_content = f.read()
-    old_json_str = old_content.split("=", 1)[1].strip()
-    if old_json_str.endswith(";"):
-        old_json_str = old_json_str[:-1]
-    data = json.loads(old_json_str)
+    data = read_data_js(out_path) or {}
+    # BioTime's employee directory only ever reflects each person's CURRENT department, not
+    # a historical one — preserve whatever team this month already had recorded for someone
+    # rather than silently overwriting it if they get transferred partway through the month.
+    old_month_teams = {e["id"]: e["team"] for e in data.get("employees", {}).get(month_name, [])}
+    for e in employees_agg:
+        if e["id"] in old_month_teams:
+            e["team"] = old_month_teams[e["id"]]
 
     if month_name not in data.get("months", []):
         data.setdefault("months", []).append(month_name)
@@ -271,6 +286,9 @@ def main():
 
     emp_directory = fetch_employee_directory(base_url, token)
 
+    old_data = read_data_js(args.out) or {}
+    old_employees = old_data.get("employees", {})
+
     all_daily = {}
     all_employees = {}
     for i, (m, mnum) in enumerate(zip(months, month_nums), 1):
@@ -278,6 +296,15 @@ def main():
         txns = fetch_month_transactions(base_url, token, YEAR, mnum)
         print(f"    -> {len(txns)} raw punches", flush=True)
         daily_rows, employees_agg = build_month_data(YEAR, mnum, txns, emp_directory)
+        # BioTime's employee directory only ever reflects each person's CURRENT department —
+        # it has no historical dimension. A month already recorded in a previous run captured
+        # that employee's actual team at the time; preserve it instead of silently overwriting
+        # history with whoever's "current" team happens to be as of *this* run (this is exactly
+        # what broke team attribution for anyone who was ever transferred between teams).
+        old_month_teams = {e["id"]: e["team"] for e in old_employees.get(m, [])}
+        for e in employees_agg:
+            if e["id"] in old_month_teams:
+                e["team"] = old_month_teams[e["id"]]
         all_daily[m] = daily_rows
         all_employees[m] = employees_agg
         print(f"    -> {len(employees_agg)} employees with data in {m}", flush=True)

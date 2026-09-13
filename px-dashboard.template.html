@@ -668,7 +668,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="data.js?v=1789046326"></script>
+<script src="data.js?v=1789266419"></script>
 <script>
 
 /* ============ icon system — Feather-style inline SVGs, single stroke width/style
@@ -1464,10 +1464,12 @@ function openEmp(id, month){
 
       <div class="sec-t">Manual correction</div>
       <div class="edit-grid">
+        <div><label>Team (this month)</label><input type="text" id="ed_team" value="${esc(o.team??r.team??"")}"></div>
         ${[["att","Days attended"],["late","Late days"],["b8","<8h days"],["eco","Early outs"]].map(([k,l])=>`
           <div><label>${l}</label><input type="number" min="0" id="ed_${k}" value="${o[k]??r[k]}"></div>`).join("")}
         <div><label>Avg daily hours</label><input type="number" step="0.01" min="0" id="ed_avg" value="${o.avg??r.avg??""}"></div>
       </div>
+      <p class="hint" style="margin-top:8px">Team defaults to their current BioTime department for every month — the API doesn't expose historical department history, so if this employee changed teams partway through the year, correct their team here for the months it was actually different (e.g. before a transfer).</p>
       <div style="display:flex;gap:10px;margin-top:16px">
         <button class="btn pri" onclick="saveEmp('${esc(id)}','${month}')">Save correction</button>
         ${o&&Object.keys(o).length?`<button class="btn danger" onclick="clearEmp('${esc(id)}','${month}')">${icon("rotate-ccw")} Revert to sheet</button>`:""}
@@ -1478,10 +1480,16 @@ function openEmp(id, month){
 function closeModal(){ $("#ovl").classList.remove("on"); }
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
 function saveEmp(id, month){
+  // Every field is pre-filled with its current computed value, so only persist an override
+  // for a field the user actually changed — otherwise editing just the team (or just one
+  // number) would freeze every other field at today's snapshot and stop it from tracking
+  // later recomputation (a synced correction, a new holiday, etc).
+  const r = effRow(id, month);
   const g=k=>{const v=$("#ed_"+k).value.trim();return v===""?null:Number(v);};
   const patch={};
-  ["att","late","b8","eco"].forEach(k=>{const v=g(k); if(v!=null&&!Number.isNaN(v)&&v>=0)patch[k]=v;});
-  const av=g("avg"); if(av!=null&&!Number.isNaN(av)&&av>=0){patch.avg=av; patch.band=av<9?"<9":av>9?">9":"";}
+  ["att","late","b8","eco"].forEach(k=>{const v=g(k); if(v!=null&&!Number.isNaN(v)&&v>=0&&v!==r[k])patch[k]=v;});
+  const av=g("avg"); if(av!=null&&!Number.isNaN(av)&&av>=0&&av!==r.avg){patch.avg=av; patch.band=av<9?"<9":av>9?">9":"";}
+  const teamVal=$("#ed_team").value.trim(); if(teamVal&&teamVal!==r.team) patch.team=teamVal;
   if(!Object.keys(patch).length){toast("Nothing to save");return;}
   OVR.att[id+"@"+month]={...(OVR.att[id+"@"+month]||{}),...patch};
   save(); refreshMatrix(); renderAtt(); openEmp(id,month); toast("Saved manual correction");
