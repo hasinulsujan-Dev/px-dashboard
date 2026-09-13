@@ -132,6 +132,15 @@ main{padding:26px 24px 80px;min-width:0;width:100%}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .panel-h{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line)}
 .panel-h h3{font-size:14.5px;font-weight:600;letter-spacing:-0.02em}
+/* Report for Sailors has several stacked panels with little visual separation between them —
+   a subtle, distinct header tint per section (not the body, just the heading strip) makes it
+   obvious at a glance where one section ends and the next begins. */
+.srh-today{background:var(--okbg)}
+.srh-tilldate{background:var(--infobg)}
+.srh-repeat{background:var(--warnbg)}
+.srh-flagged{background:var(--badbg)}
+.srh-matrix{background:rgba(91,140,255,.10)}
+.srh-criteria{background:rgba(139,91,255,.10)}
 .panel-h .hint{font-size:12px;color:var(--mut)}
 .tblwrap{overflow-x:auto;max-height:calc(100vh - 320px);min-height:200px}
 .stick-l{position:sticky;z-index:1;background:var(--card)}
@@ -607,7 +616,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   <div class="page-head"><h2>Report for Sailors</h2><p>Track misconduct and exception criteria across the team, month by month.</p></div>
   <div class="landing-2col" style="margin-bottom:16px">
     <div class="panel" id="srTodayWrap" style="display:none">
-      <div class="panel-h" onclick="toggleSrSection('today')" style="cursor:pointer;user-select:none">
+      <div class="panel-h srh-today" onclick="toggleSrSection('today')" style="cursor:pointer;user-select:none">
         <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
           <h3 style="white-space:nowrap;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <span>Attendance Status- Today</span>
@@ -624,7 +633,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
       </div>
     </div>
     <div class="panel" id="srTillDateWrap" style="display:none">
-      <div class="panel-h" onclick="toggleSrSection('tilldate')" style="cursor:pointer;user-select:none">
+      <div class="panel-h srh-tilldate" onclick="toggleSrSection('tilldate')" style="cursor:pointer;user-select:none">
         <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
           <h3 style="white-space:nowrap;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">Attendance Status-Current month- till date <span id="srTillDateDate" style="font-size:12px;color:var(--mut);font-weight:500"></span></h3>
           <span class="hint" id="srTillDateHint"></span>
@@ -638,7 +647,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     </div>
   </div>
   <div class="panel" id="srRecentRepeatPanel" style="margin-bottom:16px">
-    <div class="panel-h" onclick="toggleSrSection('recentRepeat')" style="cursor:pointer;user-select:none">
+    <div class="panel-h srh-repeat" onclick="toggleSrSection('recentRepeat')" style="cursor:pointer;user-select:none">
       <h3 style="white-space:nowrap;display:flex;align-items:center;gap:10px">
         <span>Repeated Flags — Last 3 Months</span>
         <span class="badge b-info" id="recentRepeatCount" style="display:none">0</span>
@@ -653,7 +662,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   </div>
   <div class="landing-2col" id="srAccordionGrid" style="margin-bottom:16px">
   <div class="panel" id="srFlaggedPanel">
-    <div class="panel-h" style="flex-direction:column;align-items:stretch;gap:10px">
+    <div class="panel-h srh-flagged" style="flex-direction:column;align-items:stretch;gap:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <h3 style="white-space:nowrap;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none" onclick="toggleSrAccordion('flagged')">
           <span>Individual Flagged</span>
@@ -676,7 +685,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     </div>
   </div>
   <div class="panel" id="srMatrixPanel">
-    <div class="panel-h" style="align-items:center;gap:12px">
+    <div class="panel-h srh-matrix" style="align-items:center;gap:12px">
       <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
         <h3 style="white-space:nowrap;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none" onclick="toggleSrAccordion('matrix')">
           <span>Month-to-Month Comparison</span>
@@ -694,7 +703,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
   </div>
   </div>
   <div class="panel">
-    <div class="panel-h">
+    <div class="panel-h srh-criteria">
       <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
         <h3 style="white-space:nowrap;display:flex;align-items:center;gap:8px">Sailor's Report <select id="sailorReportMonthSel" onchange="onSailorReportMonthChange()" style="padding:6px 10px;line-height:1.4;font-size:13.5px;font-weight:600"></select></h3>
         <span class="hint">criteria down the side, each with the people flagged for it · calculated from the same logic as Sailor's Raw data</span>
