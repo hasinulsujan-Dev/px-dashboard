@@ -166,7 +166,7 @@ tbody tr:hover{background:color-mix(in srgb,var(--card2) 70%,transparent)}
    same visible/auto-promotion rule noted in the overflow-x gotcha above), so a tooltip nested
    inside the table and positioned with plain CSS gets silently clipped whenever the badge is
    near the top or bottom of the scrolled area. Positioned/shown via JS instead (showBadgeTip). */
-.badge-tip-fixed{display:none;position:fixed;z-index:200;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:150px;max-width:240px;white-space:normal;font-size:11px;font-weight:400;color:var(--txt);text-align:left}
+.badge-tip-fixed{display:none;position:fixed;z-index:200;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;box-shadow:0 8px 24px rgba(0,0,0,.18);min-width:150px;max-width:240px;max-height:min(320px,70vh);overflow-y:auto;white-space:normal;font-size:11px;font-weight:400;color:var(--txt);text-align:left}
 .badge-tip-fixed.on{display:block}
 .badge-tip-fixed .tip-t{font-weight:700;margin-bottom:5px;color:var(--mut);text-transform:uppercase;font-size:9px;letter-spacing:.4px}
 .badge-tip-fixed .tip-row{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
@@ -1799,7 +1799,9 @@ function buildCriterionBadge(key, e){
   }
   const rows = e.detail.map(d=>criterionDetailRow(key,d)).join("");
   const tipHtml = `<span class="tip-t">${esc(label)}</span>${rows}`;
-  return `<span class="badge b-mut badge-tip-trigger" onmouseenter="showBadgeTip(this)" onmouseleave="hideBadgeTip()" data-tip="${esc(tipHtml)}">${esc(e.name)} — ${esc(e.value)}</span>`;
+  // Both hover (desktop) and tap (touch has no hover state at all, so a hover-only tooltip
+  // would be permanently unreachable on mobile) show/hide the same tooltip.
+  return `<span class="badge b-mut badge-tip-trigger" onmouseenter="showBadgeTip(this)" onmouseleave="hideBadgeTip()" onclick="event.stopPropagation(); toggleBadgeTip(this)" data-tip="${esc(tipHtml)}">${esc(e.name)} — ${esc(e.value)}</span>`;
 }
 function showBadgeTip(el){
   const tip=document.getElementById("badgeTip");
@@ -1810,12 +1812,26 @@ function showBadgeTip(el){
   const tr = tip.getBoundingClientRect();
   let top = r.top - tr.height - 6;
   if(top < 4) top = r.bottom + 6; // not enough room above — show below instead
+  top = Math.max(4, Math.min(top, window.innerHeight - tr.height - 4)); // stay fully on-screen even if the trigger itself sits near the very top/bottom edge (small mobile viewports)
   let left = Math.min(r.left, window.innerWidth - tr.width - 8);
   left = Math.max(8, left);
   tip.style.top = top + "px";
   tip.style.left = left + "px";
 }
 function hideBadgeTip(){ document.getElementById("badgeTip")?.classList.remove("on"); }
+let badgeTipPinnedEl = null;
+function toggleBadgeTip(el){
+  if(badgeTipPinnedEl===el){ hideBadgeTip(); badgeTipPinnedEl=null; return; }
+  showBadgeTip(el);
+  badgeTipPinnedEl = el;
+}
+// Tapping anywhere outside a pinned tooltip (or its trigger badge) closes it — there's no
+// "mouseleave" equivalent on touch, so without this a tapped-open tooltip would stay stuck.
+document.addEventListener("click", e=>{
+  if(!badgeTipPinnedEl) return;
+  if(e.target.closest(".badge-tip-trigger") || e.target.closest(".badge-tip-fixed")) return;
+  hideBadgeTip(); badgeTipPinnedEl=null;
+});
 function renderSailorReport(){
   const sel=document.getElementById("sailorReportMonthSel");
   if(sel){
