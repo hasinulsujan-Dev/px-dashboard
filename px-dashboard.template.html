@@ -160,7 +160,7 @@ tbody tr:hover{background:color-mix(in srgb,var(--card2) 70%,transparent)}
 .b-ok{background:var(--okbg);color:var(--ok)} .b-warn{background:var(--warnbg);color:var(--warn)}
 .b-bad{background:var(--badbg);color:var(--bad)} .b-info{background:var(--infobg);color:var(--info)}
 .b-mut{background:var(--card2);color:var(--mut);border:1px solid var(--line)}
-.badge-tip-trigger{cursor:default}
+.badge-tip-trigger{cursor:pointer}
 /* position:fixed + appended directly under <body> (see the #railFlyout comment near its markup
    for the same lesson) — a table's scrollable .tblwrap implicitly clips overflow-y too (the
    same visible/auto-promotion rule noted in the overflow-x gotcha above), so a tooltip nested
@@ -1799,9 +1799,10 @@ function buildCriterionBadge(key, e){
   }
   const rows = e.detail.map(d=>criterionDetailRow(key,d)).join("");
   const tipHtml = `<span class="tip-t">${esc(label)}</span>${rows}`;
-  // Both hover (desktop) and tap (touch has no hover state at all, so a hover-only tooltip
-  // would be permanently unreachable on mobile) show/hide the same tooltip.
-  return `<span class="badge b-mut badge-tip-trigger" onmouseenter="showBadgeTip(this)" onmouseleave="hideBadgeTip()" onclick="event.stopPropagation(); toggleBadgeTip(this)" data-tip="${esc(tipHtml)}">${esc(e.name)} — ${esc(e.value)}</span>`;
+  // Click-only (not hover): a hover-shown tooltip closes the instant the mouse leaves the
+  // badge on its way toward the tooltip itself, making a long, scrollable list unreachable.
+  // Click pins it open until the badge is clicked again or the user clicks elsewhere.
+  return `<span class="badge b-mut badge-tip-trigger" onclick="event.stopPropagation(); toggleBadgeTip(this)" data-tip="${esc(tipHtml)}">${esc(e.name)} — ${esc(e.value)}</span>`;
 }
 function showBadgeTip(el){
   const tip=document.getElementById("badgeTip");
@@ -1825,8 +1826,9 @@ function toggleBadgeTip(el){
   showBadgeTip(el);
   badgeTipPinnedEl = el;
 }
-// Tapping anywhere outside a pinned tooltip (or its trigger badge) closes it — there's no
-// "mouseleave" equivalent on touch, so without this a tapped-open tooltip would stay stuck.
+// Clicking anywhere outside a pinned tooltip (or its own trigger badge) closes it — since
+// opening is click-driven now, there's no hover-leave to close it otherwise, so without this
+// a tooltip would stay open until another badge was clicked.
 document.addEventListener("click", e=>{
   if(!badgeTipPinnedEl) return;
   if(e.target.closest(".badge-tip-trigger") || e.target.closest(".badge-tip-fixed")) return;
