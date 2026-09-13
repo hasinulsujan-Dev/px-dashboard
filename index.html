@@ -638,14 +638,15 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
     </div>
   </div>
   <div class="panel" id="srRecentRepeatPanel" style="margin-bottom:16px">
-    <div class="panel-h">
+    <div class="panel-h" onclick="toggleSrSection('recentRepeat')" style="cursor:pointer;user-select:none">
       <h3 style="white-space:nowrap;display:flex;align-items:center;gap:10px">
         <span>Repeated Flags — Last 3 Months</span>
         <span class="badge b-info" id="recentRepeatCount" style="display:none">0</span>
+        <span id="recentRepeatChevIcon" style="font-size:22px;line-height:1;display:inline-block;transition:transform .15s;transform:rotate(-90deg);color:var(--mut)">▾</span>
       </h3>
       <span class="hint" id="recentRepeatMonthsHint"></span>
     </div>
-    <div style="padding:16px">
+    <div id="recentRepeatBody" style="display:none;padding:16px">
       <div id="recentRepeatCards" style="display:flex;flex-direction:column;gap:16px"></div>
       <div id="recentRepeatEmpty" class="empty-state" style="padding:16px 20px;text-align:left">No one has been flagged in 2 or more of the last 3 months.</div>
     </div>
@@ -1912,14 +1913,19 @@ function renderSailorMatrix(){
   buildIndivMonthMs();
   renderIndividualFlagged();
 }
-// Today / Current month-till date cards replicated at the top of Report for Sailors —
-// collapsed by default, click the section heading to expand/collapse (see #srTodayWrap etc.).
-const srSectionCollapsed = {today:true, tilldate:true};
+// Today / Current month-till date cards replicated at the top of Report for Sailors, plus
+// Repeated Flags below them — all collapsed by default, click the section heading to
+// expand/collapse (see #srTodayWrap etc.).
+const srSectionCollapsed = {today:true, tilldate:true, recentRepeat:true};
+const SR_SECTION_IDS = {
+  today: ["srTodayBody","srTodayChevIcon"],
+  tilldate: ["srTillDateBody","srTillDateChevIcon"],
+  recentRepeat: ["recentRepeatBody","recentRepeatChevIcon"],
+};
 function toggleSrSection(which){
   srSectionCollapsed[which] = !srSectionCollapsed[which];
   const collapsed = srSectionCollapsed[which];
-  const bodyId = which==="today" ? "srTodayBody" : "srTillDateBody";
-  const chevId = which==="today" ? "srTodayChevIcon" : "srTillDateChevIcon";
+  const [bodyId, chevId] = SR_SECTION_IDS[which]||[];
   const body = document.getElementById(bodyId), chev = document.getElementById(chevId);
   if(body) body.style.display = collapsed ? "none" : "";
   if(chev) chev.style.transform = collapsed ? "rotate(-90deg)" : "rotate(0deg)";
@@ -1988,7 +1994,17 @@ function renderRecentRepeatFlags(){
   const countEl=document.getElementById("recentRepeatCount");
   const hintEl=document.getElementById("recentRepeatMonthsHint");
   if(!wrap) return;
-  const months = DATA.months.slice(-3);
+  // The 3 months immediately before the current (still in-progress) one — not DATA's last 3
+  // months, since that would include the current month while it's still being synced. This
+  // way the window is stable all month: it only advances once the current month is actually
+  // over, e.g. it stays June/July/August all through September, not June/July/August one day
+  // and July/August/September the next.
+  const curIdx = ALL_MONTHS.indexOf(getCurrentMonthName());
+  const months = [];
+  for(let i=3;i>=1;i--){
+    const mi = curIdx-i;
+    if(mi>=0 && DATA.months.includes(ALL_MONTHS[mi])) months.push(ALL_MONTHS[mi]);
+  }
   if(hintEl) hintEl.textContent = months.length ? `${months.map(shortYearLabel).join(", ")} · flagged in 2 or more of these months, any criteria` : "";
   const repeats = computeSailorRepeats(getSailorCriteriaList(), months, 2);
   if(countEl){ countEl.style.display = repeats.length ? "" : "none"; countEl.textContent = String(repeats.length); }
